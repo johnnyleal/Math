@@ -1,0 +1,33 @@
+from pathlib import Path
+import re
+ROOT=Path(__file__).resolve().parents[1]
+p=ROOT/'page.html';s=p.read_text(encoding='utf8')
+if 'revisao-v2' in s:raise SystemExit('Revisão já aplicada')
+s='<!doctype html>\n<html lang="pt-BR">\n<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">\n'+s+'\n</html>\n'
+s=s.replace('<title>Rota por Fronteiras</title>','<title>Rota por Fronteiras · Arquitetura revisada</title>')
+s=s.replace('</style>','\nhtml,body{max-width:100%;overflow-wrap:anywhere}select,input{max-width:100%}.controls>*{min-width:0}.bars{max-width:100%;overflow:auto}.tablewrap{max-width:100%;overflow:auto}\n</style>',1)
+notice='<div id="revisao-v2" style="padding:18px;border:2px solid var(--bound);margin:20px 0"><strong>Revisão v2 · 19/09/2026.</strong> <a href="laboratorio.html">Abrir o laboratório comparativo</a>. A execução paralela real e os dados públicos estão no laboratório local. Os números narrativos desta página registram a versão v1; os testes interativos executam o núcleo revisado. Não confunda o histórico com uma medição nova. A versão anterior foi preservada em versoes/v1.</div>'
+s=s.replace('<h1>',notice+'<h1>',1)
+s=s.replace('e uma conta honesta de onde o método é rápido e onde nenhum ajuste o salva.','e medições de onde as variantes testadas são rápidas e onde atingem os limites de recursos.')
+s=s.replace('o expoente muda de <span class="math">n</span> para a largura da decomposição, um invariante do grafo.','a quantidade de estados depende da largura da decomposição escolhida; a menor largura possível é uma propriedade do grafo.')
+s=s.replace('Em grafos densos ela é <span class="math">n</span> e nada ajuda.','Nos grafos completos a fronteira cresce com n, prejudicando esta enumeração explícita de estados.')
+s=s.replace('quilometragem <span class="math">w(e) &gt; 0</span> inteira','custo <span class="math">w(e) ≥ 0</span> inteiro, cuja soma é representável exatamente')
+s=s.replace('custos não positivos','custos negativos, não inteiros ou somas numericamente inseguras')
+s=s.replace('com (P1), (P3) e a versão de (P2) para o momento:','com (P1), sem ciclos exceto um circuito hamiltoniano completo quando R=V, e a versão de (P2) para o momento:')
+s=s.replace('Seja <span class="math">F</span> qualquer solução parcial em <span class="math">R = P ∪ Q</span>.','Seja <span class="math">F</span> uma solução parcial em <span class="math">R = P ∪ Q</span> cuja assinatura admite extensão a um circuito hamiltoniano. Suas restrições aos filhos também admitem essa extensão.')
+s=s.replace('O limite que nenhum ajuste remove','Limites desta enumeração de estados')
+s=s.replace('“Vencer a exponencialidade” não é uma meta atingível por nenhum clusterizador, porque a largura é um invariante do grafo.','Para a enumeração explícita de assinaturas aqui implementada, dividir em regiões não garante uma fronteira pequena em todo grafo. Isso não é uma prova de impossibilidade para algoritmos gerais.')
+s=s.replace('e o custo é <span class="math">2^{O(√n)}</span>: subexponencial, mas não polinomial.','; o limite geral de assinaturas dá 2^{O(√n log n)} para uma decomposição de largura O(√n). O limite 2^{O(√n)} requer justificar emparelhamentos não cruzados ou usar técnicas adicionais; não decorre apenas da fórmula S(b).')
+s=s.replace('L</span> não reduz a largura:','L</span> pode afetar os cortes e o conjunto ativo; no exemplo em que mantemos a mesma divisão superior,')
+s=s.replace('Valores de 4 a 8 são bons;','Valores de 4 a 8 são configurações experimentais;')
+s=s.replace('ele é uma propriedade do grafo,','o valor mínimo sobre todas as decomposições é uma propriedade do grafo,')
+s=re.sub(r'<p><span class="kicker">Vários veículos saindo da origem\.</span>.*?</p>','<p><span class="kicker">Vários veículos saindo da origem.</span> Extensão ainda não implementada. Permitir vários ciclos pelo depósito exige redefinir o estado e justificar a integração. Não está demonstrado que o custo aumente apenas por um fator k. Capacidades e horários exigem informação adicional.</p>',s)
+s=re.sub(r'<li><span class="kicker">Escala\.</span>.*?</li>','<li><span class="kicker">Escala.</span> S(b) é um limite de assinaturas, não uma previsão de tempo. Medir estados atingidos, produto de tabelas, custo de representação, planejamento, comunicação e memória. Não há extrapolação validada de horas em JavaScript para minutos em C.</li>',s)
+s=s.replace('e devolve ao paralelismo das árvores a vantagem que o produto lhe tira.','; a eventual vantagem prática e paralela ainda precisa ser medida nesta implementação.')
+s=s.replace("CIRCUITO: 'CIRCUITO (não ótimo)'","CIRCUITO: 'CIRCUITO (sem certificado)'")
+s=s.replace("' O modo degradado encontrou um circuito válido, mas mais caro que o ótimo de 3.031 km.'","` O modo degradado encontrou circuito válido de ${fmt(r.cost)} km. A referência exata deste grafo é 3.031 km; diferença: ${fmt(r.cost - 3031)} km.`")
+s=s.replace('O modo automático, com o limite de 150.000, nunca chegou a acionar a varredura nessas instâncias.','Na versão v1, o modo automático usava o produto das tabelas já calculadas. Na v2, a decisão usa uma estimativa estrutural antes de calcular a região que seria descartada; o lado varrido é escolhido pelo tamanho do conjunto ativo previsto.')
+s=s.replace('As folhas trabalham em paralelo e entregam o mesmo tipo de tabela.','Na arquitetura, as folhas podem trabalhar em paralelo e entregam o mesmo tipo de tabela. Essa execução foi implementada no laboratório local v2; os painéis didáticos abaixo continuam sequenciais.')
+s=s.replace('a expansão gulosa a partir da origem (“a cada passo, a peça vizinha que deixa a menor frente”)','a política experimental de expansão gulosa a partir da origem (“a cada passo, a peça vizinha que deixa a menor frente”)')
+p.write_text(s,encoding='utf8')
+print('Documento revisado; v1 preservada.')

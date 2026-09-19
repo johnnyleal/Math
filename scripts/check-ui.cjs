@@ -1,0 +1,14 @@
+const {chromium}=require('C:/Users/Johnny/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const fs=require('node:fs'),path=require('node:path');
+(async()=>{const b=await chromium.launch({headless:true,channel:'chrome'}),p=await b.newPage({viewport:{width:1400,height:1000}}),errors=[];p.on('pageerror',e=>errors.push(e.message));
+await p.goto('http://127.0.0.1:8765/');await p.waitForFunction(()=>document.querySelector('#graph-name').textContent==='Cidades-50');
+await p.locator('#run').click();await p.waitForFunction(()=>document.querySelector('#status').textContent.includes('Ótimo certificado'),{},{timeout:20000});
+const result=await p.locator('#metrics').innerText();if(!result.includes('3.031'))throw new Error(result);
+await p.screenshot({path:path.join(__dirname,'../resultados/interface-desktop.png'),fullPage:true});
+await p.setViewportSize({width:390,height:844});const overflow=await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth);if(overflow)throw new Error('Overflow mobile');
+await p.screenshot({path:path.join(__dirname,'../resultados/interface-mobile.png')});
+await p.locator('#import').setInputFiles({name:'zero.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify({n:3,edges:[[0,1,0],[1,2,0],[2,0,0]]}))});await p.waitForFunction(()=>document.querySelector('#graph-name').textContent==='Grafo importado');await p.locator('#run').click();await p.waitForFunction(()=>document.querySelector('#status').textContent.includes('Ótimo certificado'),{},{timeout:20000});
+const exported=p.waitForEvent('download');await p.locator('#export').click();await(await exported).saveAs(path.join(__dirname,'../resultados/exportacao-teste.json'));
+await p.locator('#instance').selectOption('Loggi-n1001-k31');await p.waitForFunction(()=>document.querySelector('#graph-size').textContent.includes('1.001'));await p.locator('#run').click();await p.locator('#cancel').click();await p.waitForFunction(()=>document.querySelector('#status').textContent==='Cancelado',{},{timeout:20000});
+await p.goto('http://127.0.0.1:8765/index.html');await p.waitForFunction(()=>document.querySelector('#intro-check').textContent.includes('3.031'));
+if(errors.length)throw new Error(errors.join('\n'));fs.writeFileSync(path.join(__dirname,'../resultados/check-ui.json'),JSON.stringify({errors,overflow,result,checks:['50 cidades 3031','importacao zero','exportacao','cancelamento','pagina explicativa','mobile 390px']},null,2));console.log('Interface: 6 verificações concluídas, sem erros JavaScript.');await b.close();})().catch(e=>{console.error(e);process.exit(1);});
