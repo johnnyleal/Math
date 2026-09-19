@@ -1,0 +1,806 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rota por Fronteiras · Arquitetura revisada</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{
+  --bg:#F2F4F1; --surface:#FFFFFF; --soft:#E8ECE9; --ink:#172120; --muted:#5B6865; --line:#D3D9D5; --line-strong:#AEB8B3;
+  --route:#EB6834; --bound:#2A78D6; --bound-soft:#D6E6F8; --route-soft:#FCE3D8;
+  --good:#1B7F4C; --warn:#9A6B0F; --bad:#B23A2A;
+  --display:"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif;
+  --body:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --mono:"JetBrains Mono",Consolas,"Courier New",monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#131716; --surface:#1B201F; --soft:#232A28; --ink:#E8ECE9; --muted:#A2ADA8; --line:#2E3634; --line-strong:#4A5450;
+    --route:#D95926; --bound:#3987E5; --bound-soft:#1E3350; --route-soft:#4A2A1C;
+    --good:#4BC27E; --warn:#D9A43A; --bad:#E8735F;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#131716; --surface:#1B201F; --soft:#232A28; --ink:#E8ECE9; --muted:#A2ADA8; --line:#2E3634; --line-strong:#4A5450;
+  --route:#D95926; --bound:#3987E5; --bound-soft:#1E3350; --route-soft:#4A2A1C;
+  --good:#4BC27E; --warn:#D9A43A; --bad:#E8735F;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.55;padding-inline:16px;padding-block:0 64px}
+.wrap{max-width:1120px;margin:0 auto}
+.prose{max-width:70ch}
+h1,h2,h3,h4{font-family:var(--display);line-height:1.12;text-wrap:balance;margin:0}
+h1{font-size:clamp(38px,6vw,64px);font-weight:700;letter-spacing:-.02em}
+h2{font-size:clamp(26px,3.4vw,36px);font-weight:700;letter-spacing:-.015em;margin-top:8px}
+h3{font-size:22px;font-weight:700;margin-top:28px}
+h4{font-size:18px;font-weight:600;margin-top:20px}
+p{margin:12px 0}
+a{color:var(--bound)}
+.eyebrow{font-family:var(--display);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700}
+header.hero{padding-block:56px 28px;border-bottom:1px solid var(--line)}
+.hero .lead{font-size:20px;max-width:66ch;margin-top:18px}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+.badge{font-family:var(--mono);font-size:12.5px;padding:6px 10px;border:1px solid var(--line-strong);border-radius:999px;background:var(--surface);color:var(--ink)}
+.badge b{color:var(--good);font-weight:600}
+nav.toc{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px 20px;padding-block:22px;border-bottom:1px solid var(--line);font-family:var(--display);font-size:15px}
+nav.toc a{text-decoration:none;color:var(--ink);padding:4px 0;border-bottom:1px dotted transparent}
+nav.toc a:hover,nav.toc a:focus-visible{border-bottom-color:var(--bound)}
+nav.toc span{color:var(--muted);font-size:12px;margin-right:6px;font-variant-numeric:tabular-nums}
+section{padding-block:36px 8px;border-bottom:1px solid var(--line)}
+section:last-of-type{border-bottom:0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px 28px}
+@media (max-width:760px){.grid2{grid-template-columns:1fr}}
+table{border-collapse:collapse;width:100%;font-size:15px;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--display);font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:700}
+td.num,th.num{text-align:right}
+.tablewrap{overflow-x:auto;margin:14px 0}
+.mono{font-family:var(--mono);font-size:14px}
+code{font-family:var(--mono);font-size:.88em;background:var(--soft);padding:1px 5px;border-radius:4px}
+pre{font-family:var(--mono);font-size:13.5px;line-height:1.5;background:var(--soft);padding:14px 16px;border-radius:8px;overflow-x:auto;margin:14px 0}
+.math{font-family:var(--body);font-style:italic}
+.thm{border-left:3px solid var(--bound);padding:10px 16px;margin:18px 0;background:var(--surface)}
+.thm .lbl{font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.02em;color:var(--bound)}
+.thm p{margin:8px 0}
+.proof{color:var(--ink);border-left:3px solid var(--line-strong);padding:6px 16px;margin:10px 0 18px}
+.proof .lbl{font-family:var(--display);font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.qed{float:right;color:var(--muted)}
+.callout{background:var(--soft);border-radius:10px;padding:14px 18px;margin:18px 0}
+.callout.warn{border-left:4px solid var(--warn)}
+.callout.good{border-left:4px solid var(--good)}
+figure{margin:22px 0}
+figure svg{max-width:100%;height:auto;display:block}
+figcaption{font-size:14.5px;color:var(--muted);margin-top:8px;max-width:80ch}
+.figwrap{overflow-x:auto}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:22px 0}
+.panel h3{margin-top:0}
+.controls{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:end;margin:14px 0}
+.controls label{display:flex;flex-direction:column;gap:4px;font-family:var(--display);font-size:13px;color:var(--muted)}
+.controls select,.controls input[type=number]{font:15px var(--display);padding:7px 10px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);color:var(--ink);min-width:150px}
+.controls label.check{flex-direction:row;align-items:center;gap:8px;padding-bottom:9px;color:var(--ink);font-size:15px}
+button{font:600 15px var(--display);padding:9px 16px;border-radius:8px;border:1px solid var(--ink);background:var(--ink);color:var(--bg);cursor:pointer}
+button.secondary{background:var(--surface);color:var(--ink)}
+button:disabled{opacity:.55;cursor:wait}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--bound);outline-offset:2px}
+.status{font-family:var(--mono);font-size:13.5px;color:var(--muted);min-height:20px;margin:6px 0}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.chip{border:1px solid var(--line);border-radius:8px;padding:8px 12px;min-width:110px;background:var(--bg)}
+.chip .k{font-family:var(--display);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.chip .v{font-family:var(--mono);font-size:17px;font-weight:600;margin-top:2px}
+.chip.ok .v{color:var(--good)} .chip.bad .v{color:var(--bad)} .chip.warn .v{color:var(--warn)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:14px;color:var(--muted);margin:8px 0}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:-2px;margin-right:6px}
+.bars{display:grid;grid-template-columns:auto 1fr auto;gap:6px 10px;align-items:center;font-size:14px;margin:10px 0}
+.bars .lab{color:var(--muted);white-space:nowrap}
+.bars .bar{height:14px;background:var(--bound);border-radius:0 4px 4px 0;min-width:2px}
+.bars .val{font-family:var(--mono);font-size:13px;text-align:right}
+.trace{font-family:var(--mono);font-size:13px;letter-spacing:.04em;word-break:break-word}
+.trace b{color:var(--bad);font-weight:600}
+details{margin:12px 0}
+summary{cursor:pointer;font-family:var(--display);font-weight:600}
+.small{font-size:14.5px;color:var(--muted)}
+ul,ol{padding-left:22px}
+li{margin:6px 0}
+.kicker{font-family:var(--display);font-weight:600}
+@media (prefers-reduced-motion:no-preference){.route-path{transition:stroke-dashoffset .8s ease}}
+
+html,body{max-width:100%;overflow-wrap:anywhere}select,input{max-width:100%}.controls>*{min-width:0}.bars{max-width:100%;overflow:auto}.tablewrap{max-width:100%;overflow:auto}
+</style>
+
+<div class="wrap">
+<header class="hero">
+  <div class="eyebrow">Plano de referência · versão 1.0 · 19 de setembro de 2026</div>
+  <div id="revisao-v2" style="padding:18px;border:2px solid var(--bound);margin:20px 0"><strong>Revisão v2 · 19/09/2026.</strong> <a href="laboratorio.html">Abrir o laboratório comparativo</a>. A execução paralela real e os dados públicos estão no laboratório local. Os números narrativos desta página registram a versão v1; os testes interativos executam o núcleo revisado. Não confunda o histórico com uma medição nova. A versão anterior foi preservada em versoes/v1.</div><h1>Rota por Fronteiras</h1>
+  <p class="lead">A arquitetura de Johnny para o caixeiro viajante, completada onde estava aberta e corrigida onde estava errada: clusters que calculam alternativas em paralelo, integração por estados de fronteira, e medições de onde as variantes testadas são rápidas e onde atingem os limites de recursos. Tudo abaixo roda no seu navegador.</p>
+  <div class="badges">
+    <span class="badge">núcleo: <b>9.251 verificações, 0 falhas</b> em Node 25</span>
+    <span class="badge">1.800 execuções exatas × força bruta</span>
+    <span class="badge">50 cidades: <b>3.031 km</b> · 312 estados com clusters, 110 na varredura pura</span>
+    <span class="badge">exato, não heurístico</span>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Sumário">
+  <a href="#resumo"><span>1</span>Em uma página</a>
+  <a href="#problema"><span>2</span>O problema e o mapa</a>
+  <a href="#arquitetura"><span>3</span>Arquitetura ponta a ponta</a>
+  <a href="#matematica"><span>4</span>A matemática</a>
+  <a href="#clusterizador"><span>5</span>O clusterizador e o fator C</a>
+  <a href="#integracao"><span>6</span>A integração</a>
+  <a href="#testes"><span>7</span>Testes interativos</a>
+  <a href="#extensoes"><span>8</span>Extensões</a>
+  <a href="#limites"><span>9</span>Limites honestos</a>
+  <a href="#roteiro"><span>10</span>Roteiro e arquivos</a>
+</nav>
+
+<!-- ============================================================ 1 -->
+<section id="resumo">
+  <div class="eyebrow">Parte 1</div>
+  <h2>Em uma página</h2>
+  <div class="prose">
+    <p>O plano original tem cinco passos: cada cidade declara suas estradas; um orquestrador forma clusters num plano quadriculado; cada cluster calcula, em paralelo, seus trajetos entre cidades de fronteira; clusters grandes repetem o processo; e a integração recompõe o circuito peça a peça, comparando conexões. Essa estrutura está certa. Ela é, na essência, a programação dinâmica clássica sobre decomposições em árvore, conhecida desde Arnborg e Proskurowski (1989), que Cook e Seymour aplicaram ao caixeiro viajante em 2003 e que Dorn, Penninkx, Bodlaender e Fomin levaram ao caso planar em 2010.</p>
+    <p>O que este plano acrescenta é a especificação exata do que um cluster entrega (uma tabela de <em>assinaturas de fronteira</em>, não uma rota), a regra de descarte que preserva o ótimo, a ordem de integração que mantém a frente pequena, uma escolha automática entre unir tabelas e varrer estradas, e a prova de que tudo isso devolve o circuito mínimo ou a resposta “não existe circuito”. E o que ele retira é a promessa de vencer a exponencialidade: a quantidade de estados depende da largura da decomposição escolhida; a menor largura possível é uma propriedade do grafo. A hipótese de trabalho é que em malhas viárias essa largura seja pequena; ela ainda não foi medida numa rede real (Parte 10, item 4). Nos grafos completos a fronteira cresce com n, prejudicando esta enumeração explícita de estados.</p>
+  </div>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Furo na arquitetura</th><th>Correção adotada aqui</th><th>Evidência nesta página</th></tr></thead>
+    <tbody>
+      <tr><td>O cluster entrega “o menor caminho entre fronteiras”. A rota ótima atravessa clusters em vários trechos separados.</td><td>O cluster entrega uma tabela: para cada assinatura (graus 0/1/2 nas cidades de fronteira e emparelhamento dos extremos dos caminhos), o menor custo. Vários trechos são permitidos.</td><td><a href="#t3">Teste 3</a>: exigir um caminho por cluster nas 50 cidades devolve “inviável”.</td></tr>
+      <tr><td>“Sempre a menos distante” lido como descarte guloso.</td><td>Descarte só entre alternativas com a mesma assinatura (lema da troca segura). Graus sem conectividade não bastam.</td><td><a href="#t3">Teste 3</a>: sem conectividade, o exemplo A–F não tem solução e as 50 cidades saem mais caras (3.054 km na cadeia, 3.134 km na árvore).</td></tr>
+      <tr><td>Expandir a partir da origem “em todas as direções” sem planejar a ordem.</td><td>Ordem de varredura planejada (eixo geométrico mais longo ou Cuthill–McKee), começando na ponta mais próxima da origem. Esquecimento imediato de cada cidade concluída.</td><td><a href="#t5">Teste 5</a>: a expansão gulosa chega a 22 cidades de frente e estoura o orçamento; a planejada fica em 6.</td></tr>
+      <tr><td>Unir duas peças grandes multiplicando suas tabelas.</td><td>Estratégia automática por união: produto quando as tabelas são pequenas, varredura das estradas da peça menor quando não são.</td><td><a href="#t4">Teste 4</a> e bateria do Node (seção 2): grade 8×8 com 46.120 estados na árvore por produto, 5.736 na cadeia de clusters e 377 na varredura pura.</td></tr>
+      <tr><td>Tiles, hubs no centro ou na quina, fator C indefinido.</td><td>Um único objetivo governa os cortes: o tamanho do conjunto ativo. Tiles são candidatos de corte; a posição do hub é desempate. O fator C passa a ser a largura da hierarquia.</td><td><a href="#t1">Teste 1</a>: mude L, hub e refino e leia a largura resultante.</td></tr>
+      <tr><td>“Paralelismo vence a exponencialidade.”</td><td>Modelo trabalho/profundidade: o paralelismo divide o trabalho por um número fixo de máquinas; o expoente fica com a largura.</td><td><a href="#t4">Teste 4</a>: K<sub>11</sub> já exige 122 mil estados e K<sub>12</sub> estoura o pico de 300 mil; Held–Karp de 1962 resolve os dois em milissegundos.</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ============================================================ 2 -->
+<section id="problema">
+  <div class="eyebrow">Parte 2</div>
+  <h2>O problema e o mapa</h2>
+  <div class="prose">
+    <p>Um grafo <span class="math">G = (V, E, w)</span>: cidades <span class="math">V</span>, estradas <span class="math">E</span> de mão dupla, custo <span class="math">w(e) ≥ 0</span> inteiro, cuja soma é representável exatamente. Um <em>circuito hamiltoniano</em> é um conjunto <span class="math">H ⊆ E</span> de exatamente <span class="math">n</span> estradas em que toda cidade tem grau 2 e tudo forma um único ciclo. O problema pede o circuito de menor soma, ou a resposta de que não existe nenhum. Não se substituem estradas ausentes por caminhos por outras cidades: isso mudaria a regra de visitar cada cidade uma vez.</p>
+    <p>O exemplo de referência tem 50 cidades e 97 estradas, de 15 a 166 km. É quase uma grade de 5 linhas por 10 colunas com algumas diagonais. O mapa abaixo usa as coordenadas fictícias do arquivo de dados; mover um ponto não muda quilômetros nem estradas. Passe o cursor sobre uma cidade para ver seu grau.</p>
+  </div>
+  <figure>
+    <div class="figwrap"><svg id="map-intro" viewBox="0 0 1000 580" role="img" aria-label="Mapa das 50 cidades e 97 estradas com a rota ótima de 3.031 km em destaque"></svg></div>
+    <div class="legend"><span><i style="background:var(--route)"></i>rota ótima, 3.031 km</span><span><i style="background:var(--line-strong)"></i>estrada não usada</span><span><i style="background:var(--ink)"></i>cidade</span></div>
+    <figcaption>As 50 cidades, as 97 estradas e o circuito mínimo, calculado por este mesmo núcleo ao carregar a página. <span id="intro-check"></span> A comparação estrada por estrada com <code>experimento-01/referencia-resultado.json</code> está na bateria do Node.</figcaption>
+  </figure>
+  <div class="prose">
+    <p>Por que é difícil: há <span class="math">(n−1)!/2</span> circuitos possíveis num grafo completo, e nenhuma regra local (“pegue sempre a estrada mais curta”) escolhe o certo. O que a decomposição faz é trocar “todas as ordens de visita” por “todas as maneiras de a rota cruzar uma fronteira pequena”. Esse número depende da fronteira, não de <span class="math">n</span>.</p>
+  </div>
+</section>
+
+<!-- ============================================================ 3 -->
+<section id="arquitetura">
+  <div class="eyebrow">Parte 3</div>
+  <h2>Arquitetura ponta a ponta</h2>
+  <figure>
+    <div class="figwrap">
+    <svg viewBox="0 0 1180 300" role="img" aria-label="Pipeline: cadastro, planejador, trabalhadores locais em paralelo, integrador, fecho na raiz, reconstrutor e verificador, com as mensagens que passam entre eles">
+      <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+      <g fill="none" stroke="currentColor" stroke-width="1.4">
+        <rect x="20" y="70" width="150" height="70" rx="8" fill="var(--surface)"/>
+        <rect x="230" y="70" width="170" height="70" rx="8" fill="var(--surface)"/>
+        <rect x="460" y="30" width="170" height="52" rx="8" fill="var(--surface)"/>
+        <rect x="460" y="92" width="170" height="52" rx="8" fill="var(--surface)"/>
+        <rect x="460" y="154" width="170" height="52" rx="8" fill="var(--surface)"/>
+        <rect x="690" y="70" width="180" height="70" rx="8" fill="var(--bound-soft)" stroke="var(--bound)" stroke-width="2"/>
+        <rect x="930" y="70" width="110" height="70" rx="8" fill="var(--surface)"/>
+        <rect x="690" y="220" width="180" height="56" rx="8" fill="var(--surface)"/>
+        <rect x="930" y="220" width="110" height="56" rx="8" fill="var(--surface)"/>
+      </g>
+      <g stroke="currentColor" stroke-width="1.4" fill="none" marker-end="url(#arr)">
+        <path d="M170,105 L228,105"/>
+        <path d="M400,95 L458,58"/><path d="M400,105 L458,118"/><path d="M400,115 L458,180"/>
+        <path d="M630,56 L688,95"/><path d="M630,118 L688,105"/><path d="M630,180 L688,118"/>
+        <path d="M870,105 L928,105"/>
+        <path d="M985,140 L985,218"/>
+        <path d="M928,248 L872,248"/>
+      </g>
+      <g font-family="var(--display)" font-size="13" fill="currentColor" text-anchor="middle">
+        <text x="95" y="99" font-weight="700">Cadastro</text><text x="95" y="118" font-size="11.5">grafo imutável, graus</text>
+        <text x="315" y="99" font-weight="700">Planejador</text><text x="315" y="118" font-size="11.5">partição, ordem, orçamento</text>
+        <text x="545" y="52" font-weight="700">Trabalhador local</text><text x="545" y="70" font-size="11.5">folha 1 → tabela T</text>
+        <text x="545" y="114" font-weight="700">Trabalhador local</text><text x="545" y="132" font-size="11.5">folha 2 → tabela T</text>
+        <text x="545" y="176" font-weight="700">Trabalhador local</text><text x="545" y="194" font-size="11.5">folha k → tabela T</text>
+        <text x="780" y="99" font-weight="700">Integrador</text><text x="780" y="118" font-size="11.5">produto ou varredura</text>
+        <text x="985" y="99" font-weight="700">Fecho</text><text x="985" y="118" font-size="11.5">raiz: T(V)</text>
+        <text x="780" y="244" font-weight="700">Verificador</text><text x="780" y="262" font-size="11.5">grau 2, um ciclo, soma</text>
+        <text x="985" y="244" font-weight="700">Reconstrutor</text><text x="985" y="262" font-size="11.5">estradas escolhidas</text>
+      </g>
+      <g font-family="var(--mono)" font-size="10.5" fill="var(--muted)" text-anchor="middle">
+        <text x="199" y="95">declarações</text>
+        <text x="430" y="40">folhas + ordem</text>
+        <text x="660" y="40">assinatura → custo</text>
+        <text x="899" y="95">tabelas unidas</text>
+        <text x="1010" y="185">∅ → custo mínimo</text>
+        <text x="899" y="240">rota</text>
+        <text x="780" y="290">saída: ÓTIMO · INVIÁVEL · INTERROMPIDO</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption>Na arquitetura, as folhas podem trabalhar em paralelo e entregam o mesmo tipo de tabela. Essa execução foi implementada no laboratório local v2; os painéis didáticos abaixo continuam sequenciais. O integrador consome tabelas e estradas cruzadas; a raiz só aceita o estado sem pendências. O verificador é independente do solver: confere a rota contra o grafo original.</figcaption>
+  </figure>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Componente</th><th>Recebe</th><th>Produz</th><th>Regra que o define</th></tr></thead>
+    <tbody>
+      <tr><td>Cadastro</td><td>Declarações de cidades e estradas (cada cidade lista suas vizinhas; as duas pontas devem concordar)</td><td>Grafo imutável com versão, listas de adjacência e graus</td><td>Rejeita laços, custos negativos, não inteiros ou somas numericamente inseguras e estradas paralelas (cadastre só a mais barata). Especificado, não implementado: a entrada distribuída em que as duas pontas declaram a mesma estrada, e o diagnóstico prévio por grau menor que 2 ou ponte (a busca exata também conclui inviabilidade). O núcleo de referência recebe a lista de estradas.</td></tr>
+      <tr><td>Planejador</td><td>Grafo e, se houver, coordenadas</td><td>Folhas (clusters), hierarquia de integração, ordem de varredura, orçamento de estados</td><td>Minimiza o conjunto ativo em cada união (Parte 5). Tiles retangulares são os candidatos de corte quando há coordenadas.</td></tr>
+      <tr><td>Trabalhador local</td><td>Uma folha: suas cidades, estradas internas e fronteira</td><td>Tabela T(folha): assinatura → menor custo e referência de reconstrução</td><td>Enumera as estradas internas uma a uma, esquece cidades concluídas, guarda o mínimo por assinatura (Parte 4).</td></tr>
+      <tr><td>Integrador</td><td>Duas tabelas e as estradas cruzadas entre suas regiões</td><td>Tabela da união, no mesmo formato</td><td>Produto das tabelas se |T<sub>P</sub>|·|T<sub>Q</sub>| cabe no limite; senão varre as estradas de Q sobre T<sub>P</sub>. Em ambos os casos esquece cidades sem pendência.</td></tr>
+      <tr><td>Fecho</td><td>Tabela da raiz</td><td>Custo mínimo ou “inviável”</td><td>Só aceita o estado vazio: todo vértice com grau 2 e um único ciclo. Um ciclo só pode fechar na raiz e só se for o último.</td></tr>
+      <tr><td>Reconstrutor e verificador</td><td>Referência do estado final; grafo original</td><td>Estradas escolhidas, sequência a partir de C01, soma conferida</td><td>Grau 2 em toda cidade, um só ciclo, soma igual ao custo da tabela. Falha em qualquer item é erro do solver, não da entrada.</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="grid2">
+    <div>
+      <h4>O contrato de mensagem entre peças</h4>
+      <p class="small">Uma linha da tabela que um cluster entrega. As assinaturas usam identificadores estáveis e ordem canônica, para que máquinas diferentes reconheçam o mesmo estado.</p>
+<pre>{
+  "regiao": "A",  "versao": "2026-09-19-km",
+  "ativos": ["C05","C11","C12","C13","C14","C15"],
+  "graus":  [ 1,    1,    2,    2,    2,    0  ],
+  "pares":  [["C05","C11"]],
+  "custo":  350,
+  "ref":    "…referência de reconstrução…"
+}</pre>
+      <p class="small">Leitura: dentro do cluster A, a rota ótima forma um caminho de C05 a C11 que já visitou C12, C13 e C14 (grau 2), enquanto C15 ainda não recebeu estrada alguma (grau 0): ela será atravessada por fora, vindo de C16 e saindo para C26. É este estado, e não “um caminho por todas as cidades de A”, que precisa subir para o integrador.</p>
+    </div>
+    <div>
+      <h4>Estados de saída e orçamento</h4>
+      <ul>
+        <li><span class="kicker">ÓTIMO</span>: a tabela da raiz tem o estado vazio; a rota reconstruída passou no verificador; o custo é mínimo pelo teorema da Parte 4.</li>
+        <li><span class="kicker">INVIÁVEL</span>: nenhuma solução parcial sobreviveu até a raiz. Não existe circuito hamiltoniano.</li>
+        <li><span class="kicker">INTERROMPIDO</span>: um dos três limites estourou (pico de estados vivos, transições totais ou tempo), e o motivo é informado. Nenhuma rota é rotulada como ótima nesse caso. O resultado traz a largura estática da hierarquia para que o planejador tente outra.</li>
+        <li><span class="kicker">CIRCUITO</span>: só nos modos degradados dos testes. É uma rota válida sem direito ao rótulo de ótimo.</li>
+      </ul>
+      <h4>Paralelismo: trabalho e profundidade</h4>
+      <p class="small">Trabalho <span class="math">W</span> é a soma das transições de todos os nós; profundidade <span class="math">D</span> é o maior caminho de dependências da hierarquia. Com <span class="math">p</span> máquinas o tempo é pelo menos <span class="math">max(W/p, D)</span>. As folhas são independentes e paralelizam; as uniões de uma cadeia são sequenciais. O Teste 1 mostra <span class="math">W</span>, <span class="math">D</span> e a fração de trabalho que está nas folhas.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 4 -->
+<section id="matematica">
+  <div class="eyebrow">Parte 4</div>
+  <h2>A matemática</h2>
+  <div class="prose">
+    <p>Quatro definições, três lemas e um teorema. Tudo o que o solver faz é uma consequência mecânica deles; tudo o que ele não faz (janelas de tempo, sentidos únicos) exige revisar o lema da troca segura.</p>
+    <h3>Definições</h3>
+    <p><span class="kicker">Região e fronteira.</span> Para <span class="math">R ⊆ V</span>, a fronteira é <span class="math">B(R) = {v ∈ R : existe (v,u) ∈ E com u ∉ R}</span> e o interior é <span class="math">I(R) = R ∖ B(R)</span>. <span class="math">E(R)</span> são as estradas com as duas pontas em <span class="math">R</span>. Ser fronteira é propriedade do grafo, não do desenho: uma cidade na borda do tile sem estrada para fora não é fronteira.</p>
+    <p><span class="kicker">Solução parcial.</span> Um conjunto <span class="math">F ⊆ E(R)</span> é solução parcial em <span class="math">R</span> quando (P1) toda cidade de <span class="math">R</span> tem grau no máximo 2 em <span class="math">F</span>; (P2) toda cidade de <span class="math">I(R)</span> tem grau exatamente 2; (P3) <span class="math">F</span> não contém ciclo, salvo quando <span class="math">R = V</span>, caso em que <span class="math">F</span> deve ser um circuito hamiltoniano. De (P1) e (P3), <span class="math">F</span> é uma união de caminhos disjuntos. Cada caminho com pelo menos uma estrada tem dois extremos de grau 1, e por (P2) os dois estão em <span class="math">B(R)</span>. Cidades de grau 0 também estão em <span class="math">B(R)</span>.</p>
+    <p><span class="kicker">Assinatura.</span> <span class="math">σ(F) = (d, m)</span>, onde <span class="math">d : B(R) → {0,1,2}</span> é o grau em <span class="math">F</span> e <span class="math">m</span> é o emparelhamento perfeito sobre <span class="math">{v : d(v) = 1}</span> que une os dois extremos de cada caminho. Observação: uma cidade de fronteira com <span class="math">d = 2</span> não entra em <span class="math">m</span>; ela é interior a um caminho cujos extremos já estão registrados. Guardar a componente dela seria redundante e multiplicaria estados.</p>
+    <p><span class="kicker">Tabela.</span> <span class="math">T(R)</span> associa a cada assinatura realizável o menor custo <span class="math">w(F)</span> entre as soluções parciais com essa assinatura, mais uma referência para reconstruir <span class="math">F</span>.</p>
+
+    <div class="thm"><div class="lbl">Lema 1 · Projeção</div><p>Se <span class="math">H</span> é um circuito hamiltoniano e <span class="math">R ≠ V</span>, então <span class="math">F = H ∩ E(R)</span> é uma solução parcial em <span class="math">R</span>.</p></div>
+    <div class="proof"><div class="lbl">Prova</div><p>(P1) vale porque todo grau em <span class="math">H</span> é 2. (P2): uma cidade de <span class="math">I(R)</span> tem todas as suas estradas em <span class="math">E(R)</span>, logo seu grau em <span class="math">F</span> é o grau em <span class="math">H</span>, que é 2. (P3): um ciclo <span class="math">C ⊆ F ⊆ H</span> seria um ciclo dentro do único ciclo <span class="math">H</span>, logo <span class="math">C = H</span> e <span class="math">V ⊆ R</span>, contra <span class="math">R ≠ V</span>. <span class="qed">∎</span></p></div>
+
+    <div class="thm"><div class="lbl">Lema 2 · Troca segura</div><p>Sejam <span class="math">F₁, F₂</span> soluções parciais em <span class="math">R</span> com <span class="math">σ(F₁) = σ(F₂)</span>, e <span class="math">X ⊆ E ∖ E(R)</span> qualquer conjunto de estradas não interiores a <span class="math">R</span>. Então <span class="math">F₁ ∪ X</span> é um circuito hamiltoniano se e somente se <span class="math">F₂ ∪ X</span> é. Mais geralmente, para qualquer região <span class="math">R' ⊇ R</span> e <span class="math">Y ⊆ E(R') ∖ E(R)</span>, <span class="math">F₁ ∪ Y</span> é solução parcial em <span class="math">R'</span> se e somente se <span class="math">F₂ ∪ Y</span> é, e as duas têm a mesma assinatura em <span class="math">R'</span>.</p></div>
+    <div class="proof"><div class="lbl">Prova</div><p><em>Graus.</em> Cidades de <span class="math">I(R)</span> têm grau 2 nos dois casos e não tocam <span class="math">X</span> (não têm estradas para fora de <span class="math">R</span>). Cidades de <span class="math">B(R)</span> têm grau <span class="math">d(v) + deg_X(v)</span>, igual nos dois casos. Cidades fora de <span class="math">R</span> têm grau <span class="math">deg_X(v)</span>. Portanto as condições de grau coincidem.</p>
+    <p><em>Estrutura de ciclos.</em> Contraia cada caminho de <span class="math">F_i</span> com pelo menos uma estrada num único arco entre seus dois extremos. Os vértices internos desses caminhos têm grau 2 já em <span class="math">F_i</span>; quando as condições de grau valem, nenhuma estrada de <span class="math">X</span> os toca, e contrair um caminho cujos vértices internos não têm outras estradas preserva conexidade e preserva a propriedade de ser um único ciclo. O conjunto de vértices que somem na contração é <span class="math">I(R) ∪ {v ∈ B(R) : d(v) = 2}</span>, o mesmo nos dois casos porque <span class="math">d</span> coincide. O grafo contraído é <span class="math">M_i = (arcos de m) ∪ X</span> sobre os vértices restantes, e <span class="math">M₁ = M₂</span> porque <span class="math">m</span> e <span class="math">X</span> são os mesmos. Logo <span class="math">F₁ ∪ X</span> é um único ciclo por todas as cidades exatamente quando <span class="math">F₂ ∪ X</span> é. O caso geral com <span class="math">R'</span> e <span class="math">Y</span> é o mesmo argumento: acíclico ou não, e a assinatura em <span class="math">B(R')</span>, são determinados pelo grafo contraído, que é igual nos dois casos. <span class="qed">∎</span></p></div>
+
+    <div class="callout warn"><p><span class="kicker">Por que os graus sozinhos não bastam.</span> Num cluster {A,B,C,D} com estradas A–D e B–C de custo 1 e A–B, C–D de custo 3, as escolhas {A–D, B–C} (custo 2) e {A–B, C–D} (custo 6) têm o mesmo vetor de graus (todos 1) e emparelhamentos diferentes. Com as estradas externas B–E, E–C, D–F, F–A, a primeira fecha dois ciclos separados e a segunda fecha o circuito A–B–E–C–D–F–A de custo 10. Descartar a de custo 6 por ser mais cara perde a única solução. O Teste 3 executa este caso.</p></div>
+
+    <div class="thm"><div class="lbl">Lema 3 · Esquecimento imediato</div><p>No meio de uma varredura, as estradas de <span class="math">E(R)</span> dividem-se em decididas, <span class="math">D</span>, e pendentes. Uma <em>solução parcial em (R, D)</em> é um <span class="math">F ⊆ D</span> com (P1), sem ciclos exceto um circuito hamiltoniano completo quando R=V, e a versão de (P2) para o momento: toda cidade sem estrada pendente e sem estrada para fora de <span class="math">R</span> tem grau 2. Seja <span class="math">A</span> o conjunto ativo: cidades de <span class="math">R</span> com alguma estrada pendente ou com estrada para fora de <span class="math">R</span>. Duas soluções parciais em (R, D) com a mesma assinatura restrita a <span class="math">A</span> são intercambiáveis para qualquer decisão sobre as estradas pendentes e as externas. Uma cidade que sai de <span class="math">A</span> precisa ter grau 2 no momento em que sai.</p></div>
+    <div class="proof"><div class="lbl">Prova</div><p>É o Lema 2 com <span class="math">B(R)</span> trocado por <span class="math">A</span> e <span class="math">E ∖ E(R)</span> trocado pelas estradas pendentes e externas: todas elas tocam apenas <span class="math">A</span> ou cidades fora de <span class="math">R</span>, então o argumento dos graus e o da contração passam sem alteração. Uma cidade sem estradas pendentes e com grau diferente de 2 nunca mais poderá completar o grau 2, logo toda solução parcial que a contém assim é descartada. Quando <span class="math">D = E(R)</span>, <span class="math">A = B(R)</span> e recupera-se o Lema 2. <span class="qed">∎</span></p></div>
+
+    <div class="thm"><div class="lbl">Teorema · Correção do solver</div><p>Para qualquer hierarquia que particione <span class="math">V</span>, o solver calcula, em cada região, <span class="math">T(R)[σ] = min{ w(F) : F solução parcial em R, σ(F) = σ }</span> para toda assinatura <em>viva</em>, isto é, que admite extensão a um circuito hamiltoniano. Assinaturas mortas podem ser podadas sem afetar a raiz, e o filtro de viabilidade da Parte 6 poda parte delas. Na raiz, a única assinatura é a vazia e seu valor é o custo do circuito hamiltoniano mínimo; se a tabela da raiz está vazia, não existe circuito.</p></div>
+    <div class="proof"><div class="lbl">Prova, por indução na hierarquia</div><p><em>Folha.</em> As estradas internas entram uma a uma; cada estado gera o ramo “não usa” e, quando os graus permitem, o ramo “usa”. Um ciclo só é aceito na raiz e só se todas as demais cidades já tiverem grau 2. Toda solução parcial da folha aparece como um ramo dessa enumeração; guardar o mínimo por assinatura sobre o conjunto ativo e esquecer cidades concluídas são seguros pelo Lema 3, que na tabela final coincide com o Lema 2.</p>
+    <p><em>União de P e Q.</em> Seja <span class="math">F</span> uma solução parcial em <span class="math">R = P ∪ Q</span> cuja assinatura admite extensão a um circuito hamiltoniano. Suas restrições aos filhos também admitem essa extensão. Então <span class="math">F ∩ E(P)</span> é solução parcial em <span class="math">P</span> (mesmo argumento do Lema 1, usando <span class="math">I(P) ⊆ I(R)</span>), idem para <span class="math">Q</span>, e <span class="math">Y = F ∖ (E(P) ∪ E(Q))</span> é um subconjunto das estradas cruzadas. Pela hipótese de indução, <span class="math">T(P)</span> tem um representante <span class="math">F'_P</span> com a assinatura de <span class="math">F ∩ E(P)</span> e custo menor ou igual; pelo Lema 2, <span class="math">F'_P ∪ (F ∩ E(Q)) ∪ Y</span> é solução parcial em <span class="math">R</span> com a mesma assinatura que <span class="math">F</span>. Repete-se para <span class="math">Q</span>. O integrador examina todas essas combinações: no produto, todos os pares de representantes seguidos de todos os subconjuntos das estradas cruzadas; na varredura, todos os subconjuntos das estradas de Q e das cruzadas sobre cada representante de P, o que inclui a restrição de <span class="math">F</span> a <span class="math">Q</span>. Então ele produz um candidato com a assinatura de <span class="math">F</span> e custo menor ou igual a <span class="math">w(F)</span>. O filtro de viabilidade só remove estados de <span class="math">P</span> ou <span class="math">Q</span> em que alguma cidade não pode mais atingir o grau 2; a restrição de um circuito hamiltoniano nunca é removida, então assinaturas vivas sobrevivem. Reciprocamente, todo candidato é uma solução parcial verdadeira, porque as regras (P1) a (P3) são checadas a cada estrada. Portanto a tabela da união é exata nas assinaturas vivas.</p>
+    <p><em>Raiz.</em> Com <span class="math">R = V</span> não há fronteira; a assinatura vazia significa grau 2 em toda cidade e um único ciclo, que é a definição de circuito hamiltoniano. Pelo Lema 1 o circuito mínimo projeta-se numa solução parcial em cada região, então ele nunca é perdido. <span class="qed">∎</span></p></div>
+
+    <h3>Quanto custa</h3>
+    <p><span class="kicker">Contagem de assinaturas.</span> Sobre <span class="math">b</span> cidades ativas, o número de assinaturas é no máximo</p>
+    <p class="mono" style="text-align:center">S(b) = Σ<sub>j par</sub> C(b, j) · 2<sup>b−j</sup> · (j−1)!!</p>
+    <p>escolhendo quais <span class="math">j</span> cidades têm grau 1, dando grau 0 ou 2 às outras e emparelhando as <span class="math">j</span>. A versão anterior deste projeto usava o limite <span class="math">3^b · Bell(b)</span>, que conta partições arbitrárias; o emparelhamento é o objeto certo e o limite cai de 1.917.999 para 1.850 quando <span class="math">b = 7</span>.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>b</th><th class="num">1</th><th class="num">2</th><th class="num">3</th><th class="num">4</th><th class="num">5</th><th class="num">6</th><th class="num">7</th><th class="num">8</th><th class="num">9</th><th class="num">10</th><th class="num">12</th><th class="num">14</th></tr></thead>
+      <tbody><tr><td>S(b)</td><td class="num" id="sb1"></td><td class="num" id="sb2"></td><td class="num" id="sb3"></td><td class="num" id="sb4"></td><td class="num" id="sb5"></td><td class="num" id="sb6"></td><td class="num" id="sb7"></td><td class="num" id="sb8"></td><td class="num" id="sb9"></td><td class="num" id="sb10"></td><td class="num" id="sb12"></td><td class="num" id="sb14"></td></tr></tbody>
+    </table></div>
+    <p>Em grafos planares com uma decomposição por curvas fechadas (as “sphere cuts” de Dorn e coautores), os emparelhamentos são não cruzados e a contagem cai para números de Catalan, <span class="math">2^{O(b)}</span>. Este núcleo não implementa essa restrição; é a primeira melhoria do roteiro.</p>
+    <p><span class="kicker">Custo das operações.</span> Introduzir uma estrada custa <span class="math">O(|T|)</span> transições, cada uma gerando até dois estados. Uma folha com <span class="math">e</span> estradas custa no máximo <span class="math">2e · S(b_max)</span>, onde <span class="math">b_max</span> é o maior conjunto ativo durante a varredura. Uma união por produto custa <span class="math">|T_P| · |T_Q|</span> mais a varredura das estradas cruzadas; uma união por varredura custa a varredura das estradas de Q sobre <span class="math">T_P</span>, sem o produto. O trabalho total é a soma; a profundidade é o caminho mais longo. Em todos os casos o número que manda é o maior conjunto ativo ao longo da execução: a <em>largura</em>.</p>
+
+    <h3>Limites desta enumeração de estados</h3>
+    <p>A largura de uma hierarquia é o maior conjunto ativo que ela obriga; a largura do grafo é a menor largura entre todas as hierarquias. Num grafo completo <span class="math">K_n</span>, qualquer região própria tem fronteira igual a ela mesma, então a união final tem <span class="math">n</span> cidades ativas e <span class="math">S(n)</span> cresce mais rápido que <span class="math">2^n</span>: o método é pior que o algoritmo de Held e Karp de 1962. Numa grade <span class="math">k × k</span> a largura é cerca de <span class="math">k = √n</span>, ; o limite geral de assinaturas dá 2^{O(√n log n)} para uma decomposição de largura O(√n). O limite 2^{O(√n)} requer justificar emparelhamentos não cruzados ou usar técnicas adicionais; não decorre apenas da fórmula S(b). Para grafos planares em geral, sob a Hipótese do Tempo Exponencial não existe algoritmo em <span class="math">2^{o(√n)}</span> para ciclo hamiltoniano; esse limite inferior está no livro <em>Parameterized Algorithms</em> de Cygan e coautores, capítulo 14.</p>
+    <div class="callout good"><p><span class="kicker">O que isso significa para o plano.</span> Para a enumeração explícita de assinaturas aqui implementada, dividir em regiões não garante uma fronteira pequena em todo grafo. Isso não é uma prova de impossibilidade para algoritmos gerais. A meta atingível, e valiosa, é: custo governado pela largura, e não por <span class="math">n</span>. Redes viárias reais são esparsas e quase planares, e a hipótese de trabalho é que sua largura seja pequena o bastante para o método alcançar instâncias que a enumeração jamais tocaria; essa hipótese ainda não foi medida numa rede real, e o roteiro começa por medi-la. Esta página mede a largura nos exemplos que tem em vez de prometê-la.</p></div>
+  </div>
+</section>
+
+<!-- ============================================================ 5 -->
+<section id="clusterizador">
+  <div class="eyebrow">Parte 5</div>
+  <h2>O clusterizador e o fator C</h2>
+  <div class="prose">
+    <p>O plano original pedia tiles retangulares, hubs no centro ou nas quinas, clusters autônomos e um fator C de equilíbrio. Aqui esses quatro desejos viram um único objetivo mensurável, e os tiles e os hubs continuam existindo como candidatos e desempates.</p>
+    <h3>Objetivo dos cortes</h3>
+    <p>Ao dividir uma região em <span class="math">a</span> e <span class="math">b</span>, o custo futuro da união é governado por <span class="math">|B(a)| + |B(b)|</span>, o conjunto ativo do produto. O planejador pontua cada corte candidato por</p>
+    <p class="mono" style="text-align:center">pontuação = |B(a)| + |B(b)| + 0,35 · |‖a‖ − ‖b‖| / ‖R‖ + 0,8 · (hub(a) + hub(b))</p>
+    <p>com a exigência de que nenhum lado fique com menos de um quarto das cidades. O termo de equilíbrio evita folhas degeneradas; o termo de hub mede a distância do vértice de maior grau ao centro ou à quina do tile e vale zero quando a política é “nenhum”. Como ele é fracionário, só desempata cortes de mesmo conjunto ativo dentro de um nível. Isso não protege a hierarquia inteira: um desempate no primeiro nível muda as regiões dos níveis seguintes e pode piorar a largura final. Nas 50 cidades, a política “quinas” produz largura 12 contra 11 das políticas “nenhum” e “centro”, com L = 4, 6 ou 8 (bateria do Node, seção 3). A regra correta para o planejador é tratar a política de hub como mais um candidato e escolher pela largura medida da hierarquia completa, que é o que o Teste 1 permite fazer à mão.</p>
+    <h3>Candidatos de corte</h3>
+    <ul>
+      <li><span class="kicker">Com coordenadas:</span> todas as retas verticais e horizontais entre coordenadas consecutivas. São exatamente os tiles retangulares do plano original, e as folhas herdam um retângulo cada.</li>
+      <li><span class="kicker">Sem coordenadas:</span> prefixos de uma ordem de Cuthill–McKee da região (busca em largura visitando vizinhos por grau crescente), que produz cortes de banda pequena em grafos esparsos.</li>
+      <li><span class="kicker">Refino opcional:</span> depois do melhor corte, mover uma cidade de fronteira para o outro lado enquanto o conjunto ativo diminuir. Isso quebra o retângulo, e por isso é opcional; nas 50 cidades ele muda pouco, porque o grafo já é uma grade.</li>
+    </ul>
+    <h3>Tamanho das folhas e o fator C</h3>
+    <p>A recursão para quando a região tem no máximo <span class="math">L</span> cidades. <span class="math">L</span> pode afetar os cortes e o conjunto ativo; no exemplo em que mantemos a mesma divisão superior, a fronteira da união de duas metades de uma grade é a mesma com folhas de 4 ou de 8 cidades. <span class="math">L</span> só troca trabalho de folha (enumeração de estradas internas, paralelizável) por trabalho de união. Valores de 4 a 8 são configurações experimentais; o Teste 1 deixa você medir.</p>
+    <p>O fator C que o plano procurava é, na prática, a largura da hierarquia escolhida: <span class="math">C(T) = max</span> conjunto ativo ao longo da execução. O planejador escolhe a hierarquia de menor <span class="math">C</span> entre as que consegue construir e informa o valor. Não existe um <span class="math">C</span> universal: o valor mínimo sobre todas as decomposições é uma propriedade do grafo, e a Parte 4 explica por que nenhum clusterizador o torna constante em todos os grafos.</p>
+    <h3>Ordem de varredura</h3>
+    <p>Quando a integração é uma cadeia (uma peça de cada vez), a ordem das peças decide a largura. A regra é planejar a ordem antes de integrar, não escolher a próxima peça na hora:</p>
+    <ul>
+      <li><span class="kicker">Com coordenadas:</span> as folhas são ordenadas ao longo do eixo mais longo do mapa, como uma linha que varre o plano. A ponta inicial é a mais próxima da origem, o que atende à intenção de começar em C01 sem dobrar a frente.</li>
+      <li><span class="kicker">Sem coordenadas:</span> Cuthill–McKee sobre o grafo das folhas, partindo da folha da origem.</li>
+    </ul>
+    <p>A expansão gulosa a partir da origem (“a cada passo, a peça vizinha que deixa a menor frente”) parece razoável e falha: ela contorna regiões e deixa buracos que precisam ser fechados no fim, com a frente enorme. Nas 50 cidades, com folhas de até 4 cidades, ela deixa a faixa C14–C24–C34–C44 por último e a frente sobe a 22 cidades. O Teste 5 reproduz isso.</p>
+  </div>
+</section>
+
+<!-- ============================================================ 6 -->
+<section id="integracao">
+  <div class="eyebrow">Parte 6</div>
+  <h2>A integração</h2>
+  <div class="prose">
+    <p>Três operações compõem tudo: <em>introduzir</em> uma estrada, <em>esquecer</em> uma cidade e <em>unir</em> duas tabelas. As folhas usam as duas primeiras. O integrador usa as três, e escolhe entre duas estratégias por união.</p>
+  </div>
+  <figure>
+    <div class="figwrap">
+    <svg viewBox="0 0 900 250" role="img" aria-label="Duas alternativas locais no cluster A B C D com os mesmos graus e emparelhamentos diferentes: a de custo 2 fecha dois ciclos com E e F, a de custo 6 fecha um único circuito de custo 10">
+      <defs><marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+      <g font-family="var(--display)" font-size="14" fill="currentColor" font-weight="700">
+        <text x="150" y="28" text-anchor="middle">alternativa {A–D, B–C}, custo 2</text>
+        <text x="600" y="28" text-anchor="middle">alternativa {A–B, C–D}, custo 6</text>
+      </g>
+      <g stroke="var(--line-strong)" stroke-width="1.2" stroke-dasharray="4 4" fill="none">
+        <rect x="60" y="50" width="180" height="150" rx="10"/><rect x="510" y="50" width="180" height="150" rx="10"/>
+      </g>
+      <g stroke="var(--route)" stroke-width="3" fill="none" stroke-linecap="round">
+        <path d="M100,90 L100,160"/><path d="M200,90 L200,160"/>
+        <path d="M550,90 L650,90"/><path d="M550,160 L650,160"/>
+      </g>
+      <g stroke="var(--bound)" stroke-width="2" fill="none" stroke-linecap="round">
+        <path d="M200,90 L290,125 L200,160"/><path d="M100,160 L10,125 L100,90"/>
+        <path d="M650,90 L740,125 L650,160"/><path d="M550,160 L460,125 L550,90"/>
+      </g>
+      <g fill="var(--surface)" stroke="currentColor" stroke-width="1.5">
+        <circle cx="100" cy="90" r="13"/><circle cx="200" cy="90" r="13"/><circle cx="100" cy="160" r="13"/><circle cx="200" cy="160" r="13"/><circle cx="290" cy="125" r="13"/><circle cx="10" cy="125" r="13"/>
+        <circle cx="550" cy="90" r="13"/><circle cx="650" cy="90" r="13"/><circle cx="550" cy="160" r="13"/><circle cx="650" cy="160" r="13"/><circle cx="740" cy="125" r="13"/><circle cx="460" cy="125" r="13"/>
+      </g>
+      <g font-family="var(--mono)" font-size="12" fill="currentColor" text-anchor="middle" dominant-baseline="middle">
+        <text x="100" y="90">A</text><text x="200" y="90">B</text><text x="100" y="160">D</text><text x="200" y="160">C</text><text x="290" y="125">E</text><text x="10" y="125">F</text>
+        <text x="550" y="90">A</text><text x="650" y="90">B</text><text x="550" y="160">D</text><text x="650" y="160">C</text><text x="740" y="125">E</text><text x="460" y="125">F</text>
+      </g>
+      <g font-family="var(--mono)" font-size="12" fill="var(--muted)" text-anchor="middle">
+        <text x="150" y="222">graus (1,1,1,1) · pares A–D, B–C</text><text x="150" y="240">+ externas: dois ciclos, sem circuito</text>
+        <text x="600" y="222">graus (1,1,1,1) · pares A–B, C–D</text><text x="600" y="240">+ externas: um circuito, custo 10</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption>Mesmos graus, emparelhamentos diferentes, destinos opostos. O integrador só pode descartar uma alternativa em favor de outra mais barata quando graus e pares coincidem.</figcaption>
+  </figure>
+  <div class="prose">
+    <h3>As três operações</h3>
+    <p><span class="kicker">Introduzir a estrada (u, v).</span> Para cada estado: o ramo “não usa” copia o estado. O ramo “usa” exige <span class="math">d(u) &lt; 2</span> e <span class="math">d(v) &lt; 2</span> e atualiza: se ambos tinham grau 0, nasce um caminho e <span class="math">u, v</span> viram par; se um tinha grau 1, o caminho cresce e o par passa para a nova ponta; se ambos tinham grau 1 com pares diferentes, dois caminhos se fundem e as pontas restantes viram par; se ambos tinham grau 1 e eram par um do outro, a estrada fecharia um ciclo, o que só é aceito na raiz e só quando nenhuma outra cidade ativa tem grau diferente de 2. Depois, estados com a mesma chave são reduzidos ao mais barato.</p>
+    <p><span class="kicker">Esquecer a cidade v.</span> Assim que a última estrada de <span class="math">v</span> foi decidida, todo estado com <span class="math">d(v) ≠ 2</span> morre e <span class="math">v</span> sai da chave dos demais. Nas folhas isso acontece cidade a cidade; na união, cidades que eram fronteira dos filhos e não são fronteira da união saem ao longo da varredura das estradas cruzadas.</p>
+    <p><span class="kicker">Unir P e Q.</span> Antes de qualquer coisa, cada tabela é filtrada: um estado em que alguma cidade não consegue mais chegar ao grau 2 com as estradas ainda disponíveis é descartado. Depois:</p>
+    <ul>
+      <li><span class="kicker">Produto:</span> todo par (estado de P, estado de Q) vira um estado sobre <span class="math">B(P) ∪ B(Q)</span>; em seguida as estradas cruzadas são introduzidas uma a uma com esquecimento imediato. Custo do produto: <span class="math">|T_P| · |T_Q|</span>. É o que permite integrar duas peças calculadas em paralelo.</li>
+      <li><span class="kicker">Varredura:</span> parte de <span class="math">T_P</span>, acrescenta as cidades de Q com grau 0 e introduz as estradas internas de Q e as cruzadas, uma a uma, na ordem de varredura, com esquecimento imediato. Ignora a tabela de Q. Custo: o de uma varredura sobre a frente, sem produto.</li>
+      <li><span class="kicker">Automático:</span> produto se <span class="math">|T_P| · |T_Q|</span> não passa de 150.000 (após a filtragem); varredura caso contrário. Esse limite é um parâmetro, não uma constante matemática.</li>
+    </ul>
+    <p>A consequência prática: numa cadeia de folhas pequenas o produto é sempre barato, porque uma folha de 4 cidades tem no máximo 43 assinaturas, e o paralelismo das folhas é aproveitado. Numa árvore balanceada, a união de duas metades grandes é o gargalo. Nas instâncias medidas até aqui o produto venceu a varredura em todas as uniões: na grade 8×8 com árvore de folhas de 4, forçar varredura custa 146.634 estados de pico contra 46.120 do produto, e nas 50 cidades 38.046 contra 1.848, porque a varredura recoloca toda a metade Q no conjunto ativo junto com a fronteira de P. Na versão v1, o modo automático usava o produto das tabelas já calculadas. Na v2, a decisão usa uma estimativa estrutural antes de calcular a região que seria descartada; o lado varrido é escolhido pelo tamanho do conjunto ativo previsto. A varredura fica como recurso para uniões em que o produto não cabe na memória; que ela então compense é hipótese, não medição. A mais barata de todas, em toda instância medida, foi a varredura pura sem clusters (377 na grade 8×8, 110 nas 50 cidades), com a cadeia de clusters logo atrás (5.736 e 312).</p>
+  </div>
+</section>
+
+<!-- ============================================================ 7 -->
+<section id="testes">
+  <div class="eyebrow">Parte 7</div>
+  <h2>Testes interativos</h2>
+  <p class="prose">Cada teste executa o núcleo no seu navegador, na mesma implementação verificada no Node. Os números variam com a máquina; os resultados (custos, estados, larguras) não.</p>
+
+  <!-- T1 -->
+  <div class="panel" id="t1">
+    <h3>Teste 1 · O pipeline nas 50 cidades</h3>
+    <p class="small">Escolha como particionar, como integrar e em que modo. Leia o custo, a largura, o pico de estados e o trabalho, e veja no mapa os tiles, as cidades de fronteira e a rota.</p>
+    <div class="controls">
+      <label>Tamanho máximo da folha L<select id="t1-L"><option>4</option><option selected>6</option><option>8</option><option>10</option></select></label>
+      <label>Posição do hub<select id="t1-hub"><option value="nenhum" selected>nenhum (só largura)</option><option value="centro">centro do tile</option><option value="quinas">quinas do tile</option></select></label>
+      <label class="check"><input type="checkbox" id="t1-refine">refinar cortes (quebra o retângulo)</label>
+      <label>Integração<select id="t1-integ"><option value="cadeia" selected>cadeia planejada (varredura de peças)</option><option value="arvore">árvore balanceada, produto</option><option value="arvoreauto">árvore balanceada, automático</option><option value="gulosa">expansão gulosa a partir de C01</option><option value="varredura">varredura pura, sem clusters</option></select></label>
+      <label>Modo<select id="t1-mode"><option value="exato" selected>exato</option><option value="um-caminho">um caminho por cluster</option><option value="sem-conectividade">sem conectividade</option></select></label>
+      <button id="t1-run">Resolver</button>
+    </div>
+    <div class="status" id="t1-status"></div>
+    <div class="chips" id="t1-chips"></div>
+    <div class="figwrap"><svg id="map-t1" viewBox="0 0 1000 580" role="img" aria-label="Mapa com tiles, cidades de fronteira e a rota encontrada"></svg></div>
+    <div class="legend"><span><i style="background:var(--route)"></i>rota</span><span><i style="border:2px solid var(--bound);background:var(--surface);width:12px;height:12px"></i>cidade de fronteira de uma folha</span><span><i style="background:var(--ink)"></i>cidade interior</span><span><i style="display:inline-block;width:14px;height:14px;border:1.5px dashed var(--bound);border-radius:2px;background:transparent"></i>tile (folha)</span></div>
+    <div id="t1-bars"></div>
+    <details id="t1-details"><summary>Tabela por nó da hierarquia</summary><div class="tablewrap" id="t1-table"></div></details>
+  </div>
+
+  <!-- T2 -->
+  <div class="panel" id="t2">
+    <h3>Teste 2 · Correção contra força bruta</h3>
+    <p class="small">Gera grafos aleatórios pequenos, resolve cada um por três hierarquias diferentes (bissecção, árvore aleatória, varredura pura) e compara com a enumeração de todos os circuitos. Instâncias sem circuito contam: as duas respostas têm de dizer “inviável”.</p>
+    <div class="controls">
+      <label>Cidades n<select id="t2-n"><option>5</option><option>6</option><option selected>7</option><option>8</option><option>9</option></select></label>
+      <label>Instâncias<select id="t2-count"><option>25</option><option selected>100</option><option>250</option></select></label>
+      <label>Densidade das estradas<select id="t2-dens"><option value="0.35">esparso (0,35)</option><option value="0.55" selected>médio (0,55)</option><option value="0.85">denso (0,85)</option></select></label>
+      <label>Semente<input type="number" id="t2-seed" value="2026" min="1" step="1"></label>
+      <button id="t2-run">Rodar</button>
+    </div>
+    <div class="status" id="t2-status"></div>
+    <div class="chips" id="t2-chips"></div>
+    <div id="t2-out" class="small"></div>
+  </div>
+
+  <!-- T3 -->
+  <div class="panel" id="t3">
+    <h3>Teste 3 · Por que cada regra é necessária</h3>
+    <p class="small">Três execuções que quebram versões ingênuas do plano.</p>
+    <div class="controls">
+      <button id="t3-a" class="secondary">A · A estrada mais barata fora do ótimo</button>
+      <button id="t3-b" class="secondary">B · Graus sem conectividade (A–F)</button>
+      <button id="t3-c" class="secondary">C · Modos degradados nas 50 cidades</button>
+    </div>
+    <div class="status" id="t3-status"></div>
+    <div id="t3-out"></div>
+  </div>
+
+  <!-- T4 -->
+  <div class="panel" id="t4">
+    <h3>Teste 4 · A parede</h3>
+    <p class="small">Grafos completos K<sub>n</sub> contra grades k×k, com a varredura pura; nas grades até 8×8 roda também a árvore balanceada com produto, para comparar as duas integrações. Held–Karp (2<sup>n</sup>·n<sup>2</sup>) serve de oráculo e de comparação: em grafos densos ele vence o método de fronteira. Cada execução também para em 8 segundos.</p>
+    <div class="controls">
+      <label>Pico de estados permitido<select id="t4-budget"><option value="100000">100 mil</option><option value="300000" selected>300 mil</option><option value="1000000">1 milhão</option></select></label>
+      <button id="t4-run">Rodar</button>
+    </div>
+    <div class="status" id="t4-status"></div>
+    <div class="grid2">
+      <div><h4>Grafos completos</h4><div id="t4-kn"></div></div>
+      <div><h4>Grades k×k</h4><div id="t4-grid"></div></div>
+    </div>
+  </div>
+
+  <!-- T5 -->
+  <div class="panel" id="t5">
+    <h3>Teste 5 · A ordem de integração</h3>
+    <p class="small">Mesmas folhas (L = 4), quatro políticas de integração nas 50 cidades. Para as cadeias, a sequência mostra o tamanho da fronteira da região após colar cada peça.</p>
+    <div class="controls">
+      <label>Pico de estados permitido<select id="t5-budget"><option value="100000" selected>100 mil</option><option value="300000">300 mil (a gulosa passa de 1 GB de memória e leva segundos)</option></select></label>
+      <button id="t5-run">Rodar</button>
+    </div>
+    <div class="status" id="t5-status"></div>
+    <div id="t5-out"></div>
+  </div>
+</section>
+
+<!-- ============================================================ 8 -->
+<section id="extensoes">
+  <div class="eyebrow">Parte 8</div>
+  <h2>Extensões</h2>
+  <div class="prose">
+    <p><span class="kicker">Estradas de mão única.</span> O plano original antecipou “as duas mãos de acesso, se tiver”. A extensão é mecânica: cada cidade ativa guarda (entradas, saídas) ∈ {0,1}², cada caminho parcial tem uma cauda (saída sem entrada) e uma cabeça (entrada sem saída), e <span class="math">m</span> vira um emparelhamento orientado cauda→cabeça. O Lema 2 passa sem mudança porque a contração de caminhos preserva orientação. O número de assinaturas cresce (quatro estados de grau em vez de três), a prova não. Especificado, não implementado.</p>
+    <p><span class="kicker">Vários veículos saindo da origem.</span> Extensão ainda não implementada. Permitir vários ciclos pelo depósito exige redefinir o estado e justificar a integração. Não está demonstrado que o custo aumente apenas por um fator k. Capacidades e horários exigem informação adicional.</p>
+    <p><span class="kicker">Janelas de tempo e capacidade.</span> Aqui o método não se estende: o instante de chegada numa cidade depende do caminho inteiro percorrido, então duas soluções parciais com a mesma assinatura deixam de ser intercambiáveis. Seria preciso acrescentar o tempo ao estado, e o estado deixa de ser pequeno. É a fronteira honesta desta arquitetura.</p>
+    <p><span class="kicker">Declaração distribuída.</span> “Cada cidade declara suas estradas” é o formato de entrada natural: listas de adjacência que o cadastro concilia (as duas pontas devem concordar sobre a mesma estrada e o mesmo custo). Nenhum passo do solver exige um computador por cidade; o paralelismo real está nas folhas e nas uniões independentes.</p>
+  </div>
+</section>
+
+<!-- ============================================================ 9 -->
+<section id="limites">
+  <div class="eyebrow">Parte 9</div>
+  <h2>Limites honestos</h2>
+  <div class="prose">
+    <ul>
+      <li><span class="kicker">Isto não coloca o caixeiro viajante em P.</span> O expoente é a largura, e a largura de <span class="math">K_n</span> é <span class="math">n</span>: um clusterizador com largura constante para todo grafo é impossível sem hipótese alguma. Em grafos planares, <span class="math">2^{Θ(√n)}</span> é o melhor possível sob ETH; largura <span class="math">o(√n)</span> em planares contradiria ETH.</li>
+      <li><span class="kicker">Em grafos densos, use outra ferramenta.</span> Para instâncias completas com distâncias geométricas, o estado da arte é o Concorde (relaxação linear e planos de corte), que resolve dezenas de milhares de cidades e certifica o ótimo por um limite inferior independente. Este método não compete nesse terreno.</li>
+      <li><span class="kicker">O que foi verificado e o que não foi.</span> Verificado: 200 grafos aleatórios de 4 a 8 cidades com 9 hierarquias e estratégias cada, 3 grades e as 50 cidades contra oráculos independentes (força bruta em Python, Held–Karp, varredura de referência), 9.251 verificações sem falha. Não verificado: revisão independente da prova por terceiros; comportamento em redes viárias reais de grande porte; implementação distribuída de produção.</li>
+      <li><span class="kicker">Escala.</span> S(b) é um limite de assinaturas, não uma previsão de tempo. Medir estados atingidos, produto de tabelas, custo de representação, planejamento, comunicação e memória. Não há extrapolação validada de horas em JavaScript para minutos em C.</li>
+      <li><span class="kicker">Novidade.</span> A arquitetura é uma redescoberta independente da programação dinâmica sobre decomposições em árvore, cujo estado (graus e emparelhamento de extremos) é o clássico de Arnborg e Proskurowski (1989) e abre o capítulo 11 de Cygan e coautores; Cook e Seymour (2003) a aplicaram ao caixeiro viajante por decomposições em ramos. O mérito original está na intuição; a contribuição desta página é a especificação completa, a prova e a medição.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============================================================ 10 -->
+<section id="roteiro">
+  <div class="eyebrow">Parte 10</div>
+  <h2>Roteiro e arquivos</h2>
+  <div class="grid2">
+    <div>
+      <h4>Próximos passos, em ordem</h4>
+      <ol>
+        <li>Emparelhamentos não cruzados para grafos planares (Catalan em vez de duplo fatorial): reduz a tabela por um fator que cresce com a largura.</li>
+        <li>União por representantes (a técnica de posto de Bodlaender, Cygan, Kratsch e Nederlof): substitui o produto <span class="math">|T_P| · |T_Q|</span> por <span class="math">2^{O(b)}</span> ; a eventual vantagem prática e paralela ainda precisa ser medida nesta implementação.</li>
+        <li>Planejador espectral para grafos sem coordenadas (o separador por autovetor de Cook e Seymour), comparado com Cuthill–McKee pela largura obtida.</li>
+        <li>Uma rede viária real (recorte de OpenStreetMap com 5 a 20 mil nós): medir a largura antes de qualquer promessa de desempenho.</li>
+        <li>Variante dirigida, conforme a Parte 8.</li>
+        <li>Execução com trabalhadores reais (processos ou Web Workers) medindo trabalho, profundidade e volume de mensagens, separando ganho por decomposição de ganho por paralelismo.</li>
+        <li>Revisão independente da prova da Parte 4.</li>
+      </ol>
+    </div>
+    <div>
+      <h4>Arquivos em <code>arquitetura-clusters/plano-fronteiras/</code></h4>
+      <ul>
+        <li><code>solver.js</code>: o núcleo desta página, sem dependências. Roda no Node e no navegador.</li>
+        <li><code>testar.js</code>: a bateria de verificação. <code>node testar.js</code> imprime cada seção e termina com “0 falhas”.</li>
+        <li><code>fixtures.json</code>: 200 grafos aleatórios e 3 grades com ótimos calculados em Python, independentes do JavaScript.</li>
+        <li><code>page.html</code> e <code>build.js</code>: fonte desta página; <code>node build.js</code> embute o solver e o grafo em <code>index.html</code>.</li>
+      </ul>
+      <h4>Fontes</h4>
+      <ul class="small">
+        <li>Arnborg, S.; Proskurowski, A. <em>Linear time algorithms for NP-hard problems restricted to partial k-trees</em>. Discrete Applied Mathematics 23, 1989.</li>
+        <li>Cook, W.; Seymour, P. <em>Tour merging via branch-decomposition</em>. INFORMS Journal on Computing 15(3), 2003.</li>
+        <li>Dorn, F.; Penninkx, E.; Bodlaender, H.; Fomin, F. <em>Efficient exact algorithms on planar graphs: exploiting sphere cut decompositions</em>. Algorithmica 58, 2010.</li>
+        <li>Bodlaender, H.; Cygan, M.; Kratsch, S.; Nederlof, J. <em>Deterministic single exponential time algorithms for connectivity problems parameterized by treewidth</em>. 2013.</li>
+        <li>Cygan, M. et al. <em>Parameterized Algorithms</em>. Springer, 2015. Capítulo 14 para os limites inferiores sob ETH.</li>
+        <li>Held, M.; Karp, R. <em>A dynamic programming approach to sequencing problems</em>. 1962.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+</div>
+
+<script>
+<!--SOLVER-->
+</script>
+<script>
+<!--GRAPH50-->
+(function () {
+'use strict';
+const S = Solver;
+const $ = id => document.getElementById(id);
+const fmt = v => (v == null ? '–' : Number(v).toLocaleString('pt-BR'));
+const ms = v => (v == null ? '–' : (v < 10 ? v.toFixed(1) : Math.round(v).toLocaleString('pt-BR')) + ' ms');
+const tick = () => new Promise(r => setTimeout(r, 0));
+const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
+// ------------------------------------------------------------ grafo de 50 cidades
+const G = (() => {
+  const n = GRAPH50.cities.length;
+  const g = S.makeGraph(n, GRAPH50.edges.map(e => [e.a, e.b, e.km]), GRAPH50.cities.map(c => c.name));
+  g.xy = GRAPH50.cities.map(c => [c.fictionalXKm, c.fictionalYKm]);
+  return g;
+})();
+const START = 0;
+
+// ------------------------------------------------------------ mapa
+const MAP = (() => {
+  const W = 1000, H = 580, pad = 42;
+  const xs = G.xy.map(p => p[0]), ys = G.xy.map(p => p[1]);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  const s = Math.min((W - 2 * pad) / (x1 - x0), (H - 2 * pad) / (y1 - y0));
+  const px = x => pad + (x - x0) * s, py = y => pad + (y - y0) * s;
+  return { W, H, px, py };
+})();
+function drawMap(svg, o) {
+  o = o || {};
+  const parts = [];
+  if (o.tiles) for (const t of o.tiles) {
+    const [a, b, c, d] = t.rect;
+    parts.push(`<rect x="${MAP.px(a).toFixed(1)}" y="${MAP.py(b).toFixed(1)}" width="${(MAP.px(c) - MAP.px(a)).toFixed(1)}" height="${(MAP.py(d) - MAP.py(b)).toFixed(1)}" fill="var(--bound-soft)" fill-opacity="0.35" stroke="var(--bound)" stroke-width="1.2" stroke-dasharray="5 4"/>`);
+  }
+  const used = new Set(o.edgeIds || []);
+  for (const e of G.edges) {
+    const [xa, ya, xb, yb] = [MAP.px(G.xy[e.a][0]), MAP.py(G.xy[e.a][1]), MAP.px(G.xy[e.b][0]), MAP.py(G.xy[e.b][1])];
+    if (!used.has(e.id)) parts.push(`<line x1="${xa.toFixed(1)}" y1="${ya.toFixed(1)}" x2="${xb.toFixed(1)}" y2="${yb.toFixed(1)}" stroke="var(--line-strong)" stroke-width="1.3"><title>${G.names[e.a]}–${G.names[e.b]}: ${e.w} km</title></line>`);
+  }
+  for (const e of G.edges) if (used.has(e.id)) {
+    const [xa, ya, xb, yb] = [MAP.px(G.xy[e.a][0]), MAP.py(G.xy[e.a][1]), MAP.px(G.xy[e.b][0]), MAP.py(G.xy[e.b][1])];
+    parts.push(`<line x1="${xa.toFixed(1)}" y1="${ya.toFixed(1)}" x2="${xb.toFixed(1)}" y2="${yb.toFixed(1)}" stroke="var(--route)" stroke-width="4" stroke-linecap="round"><title>${G.names[e.a]}–${G.names[e.b]}: ${e.w} km</title></line>`);
+  }
+  const bset = o.boundary || new Set();
+  for (let v = 0; v < G.n; v++) {
+    const x = MAP.px(G.xy[v][0]), y = MAP.py(G.xy[v][1]);
+    const isB = bset.has(v);
+    parts.push(`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${v === START ? 9 : 7}" fill="${isB ? 'var(--surface)' : 'var(--ink)'}" stroke="${isB ? 'var(--bound)' : 'var(--ink)'}" stroke-width="${isB ? 2.5 : 1}"><title>${G.names[v]} · grau ${G.adj[v].length}${isB ? ' · fronteira' : ''}</title></circle>`);
+    parts.push(`<text x="${x.toFixed(1)}" y="${(y - 11).toFixed(1)}" font-size="10.5" font-family="var(--mono)" fill="var(--muted)" text-anchor="middle">${G.names[v]}</text>`);
+  }
+  svg.innerHTML = parts.join('');
+}
+
+// ------------------------------------------------------------ utilidades de teste
+function leafBoundary(leaves) {
+  const B = new Set();
+  for (const l of leaves) for (const v of S.boundarySet(G, S.membership(G.n, l.v))) B.add(v);
+  return B;
+}
+function frontierTrace(leaves, order) {
+  const region = new Uint8Array(G.n), out = [];
+  for (const i of order) { for (const v of leaves[i].v) region[v] = 1; out.push(S.boundarySet(G, region).size); }
+  return out;
+}
+function buildHierarchy(cfg) {
+  if (cfg.integ === 'varredura') return { tree: S.singletonChain(G, { xy: G.xy, start: START }).tree, leaves: null, label: 'varredura pura' };
+  const h = S.bisect(G, { leafSize: cfg.L, hub: cfg.hub, refine: cfg.refine, xy: G.xy });
+  if (cfg.integ === 'arvore') return { tree: h.tree, leaves: h.leaves, strategy: 'produto', label: 'árvore, produto' };
+  if (cfg.integ === 'arvoreauto') return { tree: h.tree, leaves: h.leaves, strategy: 'auto', label: 'árvore, automático' };
+  if (cfg.integ === 'gulosa') { const c = S.chainFromOrigin(G, h.leaves, START); return { tree: c.tree, leaves: h.leaves, order: c.order, label: 'expansão gulosa' }; }
+  const c = S.sweepChain(G, h.leaves, { xy: G.xy, start: START });
+  return { tree: c.tree, leaves: h.leaves, order: c.order, label: 'cadeia planejada' };
+}
+function chip(k, v, cls) { return `<div class="chip ${cls || ''}"><div class="k">${k}</div><div class="v">${v}</div></div>`; }
+function statusClass(st) { return st === 'OTIMO' ? 'ok' : st === 'INTERROMPIDO' ? 'warn' : st === 'CIRCUITO' ? 'warn' : 'bad'; }
+function statusLabel(st) { return { OTIMO: 'ÓTIMO', INVIAVEL: 'INVIÁVEL', INTERROMPIDO: 'INTERROMPIDO', CIRCUITO: 'CIRCUITO (sem certificado)' }[st] || st; }
+function barsHtml(rows, maxV, opts) {
+  // rows: [{label, value, text}], escala linear (ou log10 quando opts.log)
+  opts = opts || {};
+  const scale = v => opts.log ? Math.log10(Math.max(1, v)) / Math.log10(Math.max(10, maxV)) : v / Math.max(1, maxV);
+  return `<div class="bars">${rows.map(r => `<span class="lab">${esc(r.label)}</span><div><div class="bar" style="width:${(100 * scale(r.value)).toFixed(1)}%"></div></div><span class="val">${r.text != null ? r.text : fmt(r.value)}</span>`).join('')}</div>${opts.log ? '<div class="small">Barras em escala logarítmica (base 10).</div>' : ''}`;
+}
+async function busy(btn, statusEl, text, fn) {
+  btn.disabled = true; statusEl.textContent = text; await tick();
+  try { await fn(); } catch (err) { statusEl.textContent = 'Erro: ' + err.message; throw err; } finally { btn.disabled = false; }
+}
+
+// ------------------------------------------------------------ carga inicial: mapa de introdução e S(b)
+(function init() {
+  for (const b of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14]) { const el = $('sb' + b); if (el) el.textContent = fmt(S.signatureBound(b)); }
+  const r = S.solve(G, S.singletonChain(G, { xy: G.xy, start: START }).tree, { xy: G.xy, start: START });
+  drawMap($('map-intro'), { edgeIds: r.edgeIds });
+  $('intro-check').textContent = r.cost === 3031 ? 'Custo obtido agora: 3.031 km, igual ao valor registrado.' : 'Custo obtido agora: ' + fmt(r.cost) + ' km, diferente do valor registrado de 3.031 km.';
+  drawMap($('map-t1'), {});
+})();
+
+// ------------------------------------------------------------ Teste 1
+$('t1-run').addEventListener('click', () => busy($('t1-run'), $('t1-status'), 'Calculando…', async () => {
+  const cfg = { L: +$('t1-L').value, hub: $('t1-hub').value, refine: $('t1-refine').checked, integ: $('t1-integ').value };
+  const mode = $('t1-mode').value;
+  const h = buildHierarchy(cfg);
+  const r = S.solve(G, h.tree, { xy: G.xy, start: START, mode, strategy: h.strategy || 'auto', maxStates: 2e5, maxMillis: 15000 });
+  const leafWorkPct = r.work ? Math.round(100 * r.leafWork / r.work) : 0;
+  const unions = r.nodes.filter(x => x.kind === 'união');
+  const maxActive = r.nodes.reduce((m, x) => Math.max(m, x.activeIn), 0);
+  $('t1-chips').innerHTML = [
+    chip('estado', statusLabel(r.status), statusClass(r.status)),
+    chip('custo', r.cost != null ? fmt(r.cost) + ' km' : '–', r.cost === 3031 ? 'ok' : ''),
+    chip('tempo', ms(r.millis)),
+    chip('pico de estados', fmt(r.peakStates)),
+    chip('trabalho W', fmt(r.work)),
+    chip('profundidade D', fmt(r.depth)),
+    chip('trabalho nas folhas', leafWorkPct + '%'),
+    chip('maior conjunto ativo inicial', fmt(maxActive)),
+    chip('folhas', h.leaves ? fmt(h.leaves.length) : fmt(G.n)),
+    chip('uniões por varredura', fmt(unions.filter(u => u.strategy === 'varredura').length) + ' / ' + fmt(unions.length)),
+  ].join('');
+  const note = r.status === 'INTERROMPIDO' ? ` Interrompido por ${r.reason === 'tempo' ? 'tempo (15 s)' : 'pico de estados (200 mil, para poupar a memória do navegador)'}: esta política de integração deixa a frente crescer demais. Largura estática da hierarquia: ${r.staticWidth}.` :
+    mode !== 'exato' && r.status === 'CIRCUITO' ? ` O modo degradado encontrou circuito válido de ${fmt(r.cost)} km. A referência exata deste grafo é 3.031 km; diferença: ${fmt(r.cost - 3031)} km.` :
+    mode !== 'exato' && r.status === 'INVIAVEL' ? ' O modo degradado não encontrou circuito algum, porque descartou as alternativas que a rota ótima usa.' : '';
+  $('t1-status').textContent = `${h.label} · L=${cfg.L} · hub=${cfg.hub} · refino=${cfg.refine ? 'sim' : 'não'} · modo ${mode}.` + note;
+  drawMap($('map-t1'), { tiles: h.leaves && h.leaves[0].rect ? h.leaves : null, boundary: h.leaves ? leafBoundary(h.leaves) : new Set(), edgeIds: r.edgeIds || [] });
+  const maxPeak = Math.max(1, ...r.nodes.map(x => x.peak));
+  $('t1-bars').innerHTML = '<h4>Pico de estados por nó (folhas depois uniões, na ordem de execução)</h4>' +
+    barsHtml(r.nodes.map((x, i) => ({ label: x.kind === 'folha' ? `folha ${i + 1} (${x.size})` : `união → ${x.size} cid.`, value: x.peak })), maxPeak, { log: true });
+  $('t1-table').innerHTML = `<table><thead><tr><th>#</th><th>tipo</th><th class="num">cidades</th><th class="num">ativos no início</th><th class="num">fronteira ao fim</th><th class="num">estradas</th><th>estratégia</th><th class="num">|T_P|·|T_Q|</th><th class="num">pico</th><th class="num">estados ao fim</th><th class="num">trabalho</th><th class="num">ms</th></tr></thead><tbody>` +
+    r.nodes.map((x, i) => `<tr><td>${i + 1}</td><td>${x.kind}</td><td class="num">${x.size}</td><td class="num">${x.activeIn}</td><td class="num">${x.boundaryOut}</td><td class="num">${x.edges}</td><td>${x.strategy}</td><td class="num">${x.kind === 'união' ? fmt(x.tableP) + '·' + fmt(x.tableQ) : ''}</td><td class="num">${fmt(x.peak)}</td><td class="num">${fmt(x.out)}</td><td class="num">${fmt(x.work)}</td><td class="num">${x.millis.toFixed(1)}</td></tr>`).join('') + '</tbody></table>';
+}));
+
+// ------------------------------------------------------------ Teste 2
+$('t2-run').addEventListener('click', () => busy($('t2-run'), $('t2-status'), 'Gerando e resolvendo…', async () => {
+  const n = +$('t2-n').value, count = +$('t2-count').value, dens = +$('t2-dens').value, seed = +$('t2-seed').value || 1;
+  const rnd = S.mulberry32(seed * 7919);
+  function randomTree(k) {
+    let nodes = Array.from({ length: k }, (_, i) => ({ v: [i] }));
+    while (nodes.length > 1) { const a = nodes.splice(Math.floor(rnd() * nodes.length), 1)[0]; const b = nodes.splice(Math.floor(rnd() * nodes.length), 1)[0]; nodes.push({ l: a, r: b }); }
+    return nodes[0];
+  }
+  let agree = 0, feasible = 0, runs = 0, maxPeak = 0, t = 0;
+  const mismatches = [];
+  for (let i = 0; i < count; i++) {
+    const edges = S.randomGraph(n, dens, seed * 1000 + i, i % 2 === 0);
+    const g = S.makeGraph(n, edges);
+    const bf = S.bruteForce(g);
+    if (bf.cost != null) feasible++;
+    const hs = [['bissecção', S.bisect(g, { leafSize: 3 }).tree, {}], ['árvore aleatória', randomTree(n), { strategy: 'produto' }], ['varredura pura', S.singletonChain(g, {}).tree, {}]];
+    let allOk = true;
+    for (const [name, tree, o] of hs) {
+      const r = S.solve(g, tree, Object.assign({ maxStates: 5e5 }, o)); runs++; t += r.millis; maxPeak = Math.max(maxPeak, r.peakStates);
+      if (r.cost !== bf.cost) { allOk = false; mismatches.push(`instância ${i} (${name}): solver ${r.status} ${r.cost} vs força bruta ${bf.cost}`); }
+    }
+    if (allOk) agree++;
+    if (i % 10 === 9) { $('t2-status').textContent = `${i + 1} / ${count}…`; await tick(); }
+  }
+  $('t2-chips').innerHTML = [chip('instâncias', fmt(count)), chip('coincidem', `${fmt(agree)} / ${fmt(count)}`, agree === count ? 'ok' : 'bad'), chip('com circuito', fmt(feasible)), chip('sem circuito', fmt(count - feasible)), chip('execuções', fmt(runs)), chip('pico de estados', fmt(maxPeak)), chip('tempo do solver', ms(t))].join('');
+  $('t2-status').textContent = agree === count ? 'Todas as instâncias coincidem com a enumeração exaustiva, inclusive as sem circuito.' : 'Divergências encontradas.';
+  $('t2-out').innerHTML = mismatches.length ? '<ul>' + mismatches.map(m => `<li>${esc(m)}</li>`).join('') + '</ul>' : '';
+}));
+
+// ------------------------------------------------------------ Teste 3
+$('t3-a').addEventListener('click', () => busy($('t3-a'), $('t3-status'), '…', async () => {
+  const g = S.makeGraph(4, [[0, 1, 2], [0, 2, 3], [0, 3, 3], [1, 2, 3], [1, 3, 3], [2, 3, 6]]);
+  const r = S.solve(g, { l: { v: [0, 1] }, r: { v: [2, 3] } });
+  $('t3-status').textContent = 'A · K4';
+  $('t3-out').innerHTML = `<p>Quatro cidades, todas ligadas: 0–1 custa 2, 2–3 custa 6, as outras quatro estradas custam 3. A estrada mais barata é 0–1.</p>
+  <div class="chips">${chip('ótimo', fmt(r.cost))}${chip('usa 0–1?', r.edgeIds.includes(0) ? 'sim' : 'não', r.edgeIds.includes(0) ? 'bad' : 'ok')}${chip('rota', r.route.join('→'))}</div>
+  <p class="small">Os circuitos que usam 0–1 custam 14; o único de custo 12 (0–2–1–3–0) evita a estrada mais barata. Qualquer regra que “fixe” a menor distância antes de olhar o todo perde este caso.</p>`;
+}));
+$('t3-b').addEventListener('click', () => busy($('t3-b'), $('t3-status'), '…', async () => {
+  const g = S.makeGraph(6, [[0, 3, 1], [1, 2, 1], [0, 1, 3], [2, 3, 3], [1, 4, 1], [4, 2, 1], [3, 5, 1], [5, 0, 1]], ['A', 'B', 'C', 'D', 'E', 'F']);
+  const t = { l: { v: [0, 1, 2, 3] }, r: { v: [4, 5] } };
+  const ex = S.solve(g, t), np = S.solve(g, t, { mode: 'sem-conectividade' });
+  $('t3-status').textContent = 'B · cluster {A,B,C,D} unido a {E,F}';
+  $('t3-out').innerHTML = `<p>O cluster {A,B,C,D} tem duas alternativas com os mesmos graus: {A–D, B–C} por 2 e {A–B, C–D} por 6. Guardar só a mais barata por vetor de graus descarta a segunda.</p>
+  <div class="chips">${chip('exato', statusLabel(ex.status) + ' · ' + fmt(ex.cost), 'ok')}${chip('sem conectividade', statusLabel(np.status) + (np.cost != null ? ' · ' + fmt(np.cost) : ''), 'bad')}</div>
+  <p class="small">Exato: ${ex.route.map(v => g.names[v]).join('–')}, custo 10. Sem conectividade: nenhum circuito, porque a alternativa de custo 2 só fecha dois triângulos separados.</p>`;
+}));
+$('t3-c').addEventListener('click', () => busy($('t3-c'), $('t3-status'), 'Resolvendo as 50 cidades três vezes…', async () => {
+  const h = S.bisect(G, { leafSize: 6, xy: G.xy });
+  const tree = S.sweepChain(G, h.leaves, { xy: G.xy, start: START }).tree;
+  const ex = S.solve(G, tree, { xy: G.xy, start: START });
+  await tick();
+  const one = S.solve(G, tree, { xy: G.xy, start: START, mode: 'um-caminho' });
+  await tick();
+  const np = S.solve(G, tree, { xy: G.xy, start: START, mode: 'sem-conectividade' });
+  // trechos por folha na rota ótima
+  const owner = new Int32Array(G.n); h.leaves.forEach((l, i) => l.v.forEach(v => { owner[v] = i; }));
+  const cyc = ex.route.slice(0, -1); const segs = h.leaves.map(() => 0);
+  for (let i = 0; i < cyc.length; i++) if (owner[cyc[i]] !== owner[cyc[(i - 1 + cyc.length) % cyc.length]]) segs[owner[cyc[i]]]++;
+  const multi = segs.filter(s => s > 1).length;
+  $('t3-status').textContent = 'C · 50 cidades, folhas de até 6, cadeia planejada';
+  $('t3-out').innerHTML = `<div class="chips">${chip('exato', statusLabel(ex.status) + ' · ' + fmt(ex.cost) + ' km', 'ok')}${chip('um caminho por cluster', statusLabel(one.status) + (one.cost != null ? ' · ' + fmt(one.cost) + ' km' : ''), one.cost === ex.cost ? 'ok' : 'bad')}${chip('sem conectividade', statusLabel(np.status) + (np.cost != null ? ' · ' + fmt(np.cost) + ' km' : ''), np.cost === ex.cost ? 'ok' : 'bad')}</div>
+  <p class="small">Na rota ótima, ${multi} das ${h.leaves.length} folhas são atravessadas em mais de um trecho (trechos por folha: ${segs.join(', ')}). Exigir um único caminho por cluster elimina exatamente essas alternativas e o resultado é “${statusLabel(one.status)}”. Ignorar a conectividade mantém uma alternativa errada como representante e o resultado é ${np.cost != null ? 'um circuito válido ' + fmt(np.cost - ex.cost) + ' km mais caro' : 'nenhum circuito'}.</p>`;
+}));
+
+// ------------------------------------------------------------ Teste 4
+$('t4-run').addEventListener('click', () => busy($('t4-run'), $('t4-status'), 'Grafos completos…', async () => {
+  const budget = +$('t4-budget').value;
+  const kn = [], grids = [];
+  for (let n = 6; n <= 12; n++) {
+    const g = S.makeGraph(n, S.completeGraph(n, 99 + n));
+    const r = S.solve(g, S.singletonChain(g, {}).tree, { maxStates: budget, maxMillis: 8000 });
+    const hk = S.heldKarp(g);
+    kn.push({ n, r, hk }); $('t4-status').textContent = `K${n}: ${statusLabel(r.status)}`; await tick();
+    if (r.status === 'INTERROMPIDO') break;
+  }
+  for (const k of [4, 6, 8, 10, 12]) {
+    const gg = S.gridGraph(k, 300 + k);
+    const g = S.makeGraph(k * k, gg.edges);
+    const r = S.solve(g, S.singletonChain(g, { xy: gg.xy }).tree, { xy: gg.xy, maxStates: budget, maxMillis: 8000 });
+    const hk = k * k <= 16 ? S.heldKarp(g) : null;
+    const tree = k <= 8 ? S.solve(g, S.bisect(g, { xy: gg.xy, leafSize: 4 }).tree, { xy: gg.xy, strategy: 'produto', maxStates: budget, maxMillis: 8000 }) : null;
+    grids.push({ k, r, hk, tree }); $('t4-status').textContent = `grade ${k}×${k}: ${statusLabel(r.status)}`; await tick();
+    if (r.status === 'INTERROMPIDO') break;
+  }
+  const maxV = Math.max(...kn.map(x => x.r.peakStates), ...grids.map(x => x.r.peakStates), 10);
+  $('t4-kn').innerHTML = barsHtml(kn.map(x => ({ label: `K${x.n} (${x.n} cid.)`, value: x.r.peakStates, text: fmt(x.r.peakStates) + (x.r.status === 'INTERROMPIDO' ? ' ✕' : '') })), maxV, { log: true }) +
+    `<div class="tablewrap"><table><thead><tr><th>n</th><th>fronteira</th><th class="num">pico</th><th class="num">ms</th><th class="num">Held–Karp</th><th class="num">ms</th></tr></thead><tbody>${kn.map(x => `<tr><td>${x.n}</td><td>${statusLabel(x.r.status)}${x.r.cost != null ? ' · ' + x.r.cost : ''}</td><td class="num">${fmt(x.r.peakStates)}</td><td class="num">${x.r.millis.toFixed(0)}</td><td class="num">${x.hk.cost}</td><td class="num">${x.hk.millis.toFixed(0)}</td></tr>`).join('')}</tbody></table></div>`;
+  $('t4-grid').innerHTML = barsHtml(grids.map(x => ({ label: `${x.k}×${x.k} (${x.k * x.k} cid.)`, value: x.r.peakStates, text: fmt(x.r.peakStates) + (x.r.status === 'INTERROMPIDO' ? ' ✕' : '') })), maxV, { log: true }) +
+    `<div class="tablewrap"><table><thead><tr><th>k</th><th>varredura pura</th><th class="num">pico</th><th class="num">ms</th><th class="num">árvore, produto (pico)</th><th class="num">Held–Karp</th></tr></thead><tbody>${grids.map(x => `<tr><td>${x.k}</td><td>${statusLabel(x.r.status)}${x.r.cost != null ? ' · ' + x.r.cost : ''}</td><td class="num">${fmt(x.r.peakStates)}</td><td class="num">${x.r.millis.toFixed(0)}</td><td class="num">${x.tree ? fmt(x.tree.peakStates) + (x.tree.status === 'INTERROMPIDO' ? ' ✕' : x.tree.cost === x.r.cost ? '' : ' (custo difere!)') : 'k > 8'}</td><td class="num">${x.hk ? x.hk.cost + ' · ' + x.hk.millis.toFixed(0) + ' ms' : 'n > 16'}</td></tr>`).join('')}</tbody></table></div>`;
+  const last = kn[kn.length - 1], lastG = grids[grids.length - 1];
+  $('t4-status').textContent = `Grafo completo: ${last.r.status === 'INTERROMPIDO' ? 'K' + last.n + ' estourou o orçamento' : 'até K' + last.n + ' dentro do orçamento'}, enquanto Held–Karp resolve todos em milissegundos. Grade: ${lastG.r.status === 'INTERROMPIDO' ? lastG.k + '×' + lastG.k + ' estourou' : lastG.k + '×' + lastG.k + ' com ' + lastG.k * lastG.k + ' cidades resolvida'} com a mesma varredura. Grades ímpares não têm circuito (grafo bipartido com número ímpar de cidades); por isso só k par.`;
+}));
+
+// ------------------------------------------------------------ Teste 5
+$('t5-run').addEventListener('click', () => busy($('t5-run'), $('t5-status'), 'Quatro políticas…', async () => {
+  const budget = +$('t5-budget').value;
+  const h = S.bisect(G, { leafSize: 4, xy: G.xy });
+  const pol = [
+    { name: 'árvore balanceada, produto', tree: h.tree, o: { strategy: 'produto' } },
+    { name: 'árvore balanceada, automático', tree: h.tree, o: { strategy: 'auto' } },
+    { name: 'cadeia planejada', c: S.sweepChain(G, h.leaves, { xy: G.xy, start: START }) },
+    { name: 'expansão gulosa a partir de C01', c: S.chainFromOrigin(G, h.leaves, START) },
+    { name: 'varredura pura (sem clusters)', tree: S.singletonChain(G, { xy: G.xy, start: START }).tree, o: {} },
+  ];
+  const rows = [];
+  for (const p of pol) {
+    $('t5-status').textContent = p.name + '…'; await tick();
+    const tree = p.tree || p.c.tree;
+    const r = S.solve(G, tree, Object.assign({ xy: G.xy, start: START, maxStates: budget, maxMillis: 20000 }, p.o || {}));
+    const trace = p.c ? frontierTrace(h.leaves, p.c.order) : null;
+    rows.push({ p, r, trace });
+  }
+  const maxV = Math.max(10, ...rows.map(x => x.r.peakStates));
+  $('t5-out').innerHTML = barsHtml(rows.map(x => ({ label: x.p.name, value: x.r.peakStates, text: fmt(x.r.peakStates) + (x.r.status === 'INTERROMPIDO' ? ' ✕' : '') })), maxV, { log: true }) +
+    `<div class="tablewrap"><table><thead><tr><th>política</th><th>estado</th><th class="num">pico</th><th class="num">trabalho</th><th class="num">profundidade</th><th class="num">ms</th><th>fronteira após cada peça</th></tr></thead><tbody>` +
+    rows.map(x => `<tr><td>${esc(x.p.name)}</td><td>${statusLabel(x.r.status)}${x.r.cost != null ? ' · ' + fmt(x.r.cost) : ''}</td><td class="num">${fmt(x.r.peakStates)}</td><td class="num">${fmt(x.r.work)}</td><td class="num">${fmt(x.r.depth)}</td><td class="num">${x.r.millis.toFixed(0)}</td><td class="trace">${x.trace ? x.trace.map(v => v >= 10 ? '<b>' + v + '</b>' : v).join(' ') : ''}</td></tr>`).join('') + '</tbody></table></div>';
+  const g = rows[3], c = rows[2];
+  $('t5-status').textContent = `Com as mesmas ${h.leaves.length} folhas, a expansão gulosa ${g.r.status === 'INTERROMPIDO' ? 'foi interrompida por ' + (g.r.reason === 'tempo' ? 'tempo' : 'pico de estados') : 'terminou'} com pico de ${fmt(g.r.peakStates)} estados e frente máxima de ${Math.max(...g.trace)} cidades; a cadeia planejada usou ${fmt(c.r.peakStates)} estados com frente máxima de ${Math.max(...c.trace)}. A profundidade mostra o que o paralelismo das folhas não recupera nas cadeias.`;
+}));
+})();
+</script>
+
+</html>
