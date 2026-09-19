@@ -1,0 +1,19 @@
+{
+  "id": "7115e191-60a0-411a-8cac-c86afb455f95",
+  "cfg": {
+    "workers": 2,
+    "method": "clusters",
+    "leafSize": 4,
+    "hub": "nenhum",
+    "integration": "auto",
+    "strategy": "auto",
+    "maxStates": 30000,
+    "maxRssMB": 1536,
+    "maxMillis": 10000
+  },
+  "result": {
+    "status": "CANCELADO",
+    "cost": null,
+    "totalWallMs": 18.49380000000383
+  }
+}
